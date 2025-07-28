@@ -1,0 +1,146 @@
+# AttendlyV1 - School Attendance Recovery System
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+/dist
+
+# misc
+.DS_Store
+*.pem
+Thumbs.db
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# npm cache (should not be committed)
+.npm-cache/
+node_modules/.cache/
+
+# env files (can opt-in for committing if needed)
+.env*
+!.env.example
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# =============================================================================
+# EDUCATIONAL DATA SECURITY (FERPA COMPLIANCE)
+# =============================================================================
+# CRITICAL: Never commit actual student data to version control
+
+# Student data files (CSV, Excel, JSON)
+/data/
+/uploads/
+/exports/
+/references/
+**/student-data/**
+**/attendance-data/**
+**/gradebook-data/**
+**/iready-data/**
+**/a2a-data/**
+*.csv
+*.xlsx
+*.xls
+!**/examples/*.csv
+!**/templates/*.csv
+
+# Backup files that might contain sensitive data
+*.bak
+*.backup
+*.old
+*.orig
+*.tmp
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Encryption keys and certificates
+*.key
+*.crt
+*.p12
+*.pfx
+private-key*
+encryption-key*
+
+# =============================================================================
+# DEVELOPMENT TOOLS
+# =============================================================================
+# IDE and editor files
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Claude Code session files
+.claude/
+claude-session-*
+
+# Logs
+logs/
+*.log
+log-*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# =============================================================================
+# INTEGRATION SPECIFICS
+# =============================================================================
+# Aeries SIS data
+aeries-exports/
+aeries-cache/
+
+# iReady data
+iready-exports/
+iready-cache/
+
+# School Status Attend (A2A)
+a2a-exports/
+a2a-cache/
+
+# Supabase local development
+.supabase/
+
+# API documentation (auto-generated)
+/docs/api/generated/
+
+# Temporary files
+temp/
+tmp/
+*.temp

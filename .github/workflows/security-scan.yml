@@ -1,0 +1,465 @@
+name: Security Scanning & FERPA Compliance
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run security scans daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '18'
+  PNPM_VERSION: '8'
+
+jobs:
+  sast-codeql:
+    name: Static Application Security Testing (CodeQL)
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript, typescript
+          queries: security-extended,security-and-quality
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build for analysis
+        run: pnpm build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript"
+
+  semgrep-sast:
+    name: Semgrep SAST Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/owasp-top-ten
+            p/javascript
+            p/typescript
+            p/react
+            p/nextjs
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+  eslint-security:
+    name: ESLint Security Rules
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install security plugins
+        run: pnpm add -D eslint-plugin-security eslint-plugin-no-secrets
+
+      - name: Run security-focused ESLint
+        run: |
+          # Create temporary security-focused config
+          cat > .eslintrc.security.js << 'EOF'
+          module.exports = {
+            extends: ['./eslint.config.mjs'],
+            plugins: ['security', 'no-secrets'],
+            rules: {
+              'security/detect-object-injection': 'error',
+              'security/detect-non-literal-regexp': 'error',
+              'security/detect-non-literal-fs-filename': 'error',
+              'security/detect-eval-with-expression': 'error',
+              'security/detect-pseudoRandomBytes': 'error',
+              'security/detect-possible-timing-attacks': 'error',
+              'security/detect-no-csrf-before-method-override': 'error',
+              'security/detect-buffer-noassert': 'error',
+              'security/detect-child-process': 'error',
+              'security/detect-disable-mustache-escape': 'error',
+              'security/detect-new-buffer': 'error',
+              'security/detect-unsafe-regex': 'error',
+              'no-secrets/no-secrets': ['error', {
+                'tolerance': 4.2,
+                'additionalRegexes': {
+                  'Supabase Key': 'sb-.*\\..*\\..{27}',
+                  'API Key': 'api[_-]?key[=:\\s]*[\'"][0-9a-zA-Z]{32,}[\'"]',
+                  'Database URL': 'postgres://.*:.*@.*:.*/.+',
+                }
+              }]
+            }
+          };
+          EOF
+          
+          npx eslint --config .eslintrc.security.js src/ --ext .ts,.tsx,.js,.jsx
+
+  secret-scan:
+    name: Secret Detection
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install TruffleHog
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Run TruffleHog
+        run: |
+          trufflehog filesystem . \
+            --exclude-paths .trufflehog-exclude \
+            --fail \
+            --json > trufflehog-results.json || true
+          
+          # Check if any secrets were found
+          if [[ -s trufflehog-results.json && $(jq length trufflehog-results.json) -gt 0 ]]; then
+            echo "❌ Secrets detected!"
+            jq -r '.[] | "File: \(.SourceMetadata.Data.Filesystem.file), Line: \(.SourceMetadata.Data.Filesystem.line), Secret: \(.DetectorName)"' trufflehog-results.json
+            exit 1
+          fi
+          
+          echo "✅ No secrets detected"
+
+      - name: Create TruffleHog exclusions
+        run: |
+          cat > .trufflehog-exclude << 'EOF'
+          node_modules/
+          .git/
+          *.lock
+          *.log
+          .next/
+          coverage/
+          dist/
+          build/
+          *.min.js
+          *.map
+          EOF
+
+  dependency-vulnerability-scan:
+    name: Dependency Vulnerability Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Snyk security scan
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=medium --file=package.json
+
+      - name: Run npm audit
+        run: |
+          # Convert pnpm lock to package-lock for npm audit
+          npm audit --audit-level=moderate
+
+      - name: Check for high-risk packages
+        run: |
+          # Check for packages with known security issues
+          HIGH_RISK_PACKAGES=(
+            "lodash@4.17.20"
+            "moment@2.29.1"
+            "node-sass@4.14.1"
+            "handlebars@4.7.6"
+            "serialize-javascript@3.1.0"
+          )
+          
+          for package in "${HIGH_RISK_PACKAGES[@]}"; do
+            if pnpm list | grep -q "$package"; then
+              echo "❌ High-risk package detected: $package"
+              exit 1
+            fi
+          done
+          
+          echo "✅ No high-risk packages detected"
+
+  license-compliance:
+    name: License Compliance Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install license checker
+        run: pnpm add -D license-checker
+
+      - name: Check licenses
+        run: |
+          # Generate license report
+          npx license-checker --json --out license-report.json
+          
+          # Check for problematic licenses
+          PROBLEMATIC_LICENSES=("GPL-3.0" "AGPL-3.0" "LGPL-3.0" "CPAL-1.0" "OSL-3.0")
+          
+          for license in "${PROBLEMATIC_LICENSES[@]}"; do
+            if grep -q "$license" license-report.json; then
+              echo "❌ Problematic license detected: $license"
+              echo "This may violate educational institution policies"
+              exit 1
+            fi
+          done
+          
+          echo "✅ License compliance check passed"
+
+  ferpa-deep-scan:
+    name: FERPA Deep Compliance Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: FERPA Pattern Analysis
+        run: |
+          echo "🔍 Performing deep FERPA compliance scan..."
+          
+          VIOLATIONS=0
+          
+          # Check for PII patterns in source code
+          echo "Checking for PII patterns..."
+          if grep -r -i -E "(social.security|ssn|tax.id|driver.license|birth.date|dob)" \
+            --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
+            --exclude-dir=node_modules --exclude-dir=.git src/ tests/ || true; then
+            echo "❌ Potential PII patterns found"
+            VIOLATIONS=$((VIOLATIONS + 1))
+          fi
+          
+          # Check for educational record patterns
+          echo "Checking for educational record patterns..."
+          if grep -r -i -E "(transcript|report.card|disciplinary|suspension|expulsion)" \
+            --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
+            --exclude-dir=node_modules --exclude-dir=.git src/ tests/ || true; then
+            echo "⚠️ Educational record references found - ensure proper access controls"
+          fi
+          
+          # Check for directory traversal vulnerabilities in file operations
+          echo "Checking for file system vulnerabilities..."
+          if grep -r -E "(\.\.\/|\.\.\\\\|path\.join.*\.\.|fs\.readFile.*\.\.|fs\.writeFile.*\.\.)" \
+            --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
+            --exclude-dir=node_modules src/ || true; then
+            echo "❌ Potential directory traversal vulnerabilities found"
+            VIOLATIONS=$((VIOLATIONS + 1))
+          fi
+          
+          # Check for SQL injection patterns
+          echo "Checking for SQL injection vulnerabilities..."
+          if grep -r -E "(query.*\+.*|sql.*\+.*|SELECT.*\+.*|INSERT.*\+.*|UPDATE.*\+.*|DELETE.*\+.*)" \
+            --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
+            --exclude-dir=node_modules src/ || true; then
+            echo "❌ Potential SQL injection vulnerabilities found"
+            VIOLATIONS=$((VIOLATIONS + 1))
+          fi
+          
+          # Check for insecure random number generation
+          echo "Checking for secure random number generation..."
+          if grep -r -E "Math\.random\(\)" \
+            --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
+            --exclude-dir=node_modules src/ || true; then
+            echo "⚠️ Math.random() usage found - consider crypto.randomBytes() for security-sensitive operations"
+          fi
+          
+          # Check for console.log with potential sensitive data
+          echo "Checking for potential data leaks in logging..."
+          if grep -r -E "console\.(log|debug|info).*password|console\.(log|debug|info).*secret|console\.(log|debug|info).*token" \
+            --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
+            --exclude-dir=node_modules src/ || true; then
+            echo "❌ Potential sensitive data logging found"
+            VIOLATIONS=$((VIOLATIONS + 1))
+          fi
+          
+          if [[ $VIOLATIONS -gt 0 ]]; then
+            echo "❌ FERPA compliance violations detected: $VIOLATIONS"
+            exit 1
+          fi
+          
+          echo "✅ FERPA deep compliance scan passed"
+
+      - name: Database Security Check
+        run: |
+          echo "🔍 Checking database security configurations..."
+          
+          # Check for RLS policies
+          if [[ -f "supabase/migrations/002_row_level_security.sql" ]]; then
+            echo "✅ Row Level Security migration found"
+            
+            # Verify RLS policies exist for student data tables
+            if grep -i "enable row level security" supabase/migrations/002_row_level_security.sql; then
+              echo "✅ RLS enabled for tables"
+            else
+              echo "⚠️ RLS policies may not be properly configured"
+            fi
+          else
+            echo "❌ Row Level Security migration not found"
+            exit 1
+          fi
+          
+          # Check for proper indexing on sensitive columns
+          if grep -r -i "CREATE.*INDEX.*student_id\|CREATE.*INDEX.*ssn" supabase/migrations/ || true; then
+            echo "⚠️ Review indexes on sensitive columns for necessity"
+          fi
+
+      - name: Audit Trail Check
+        run: |
+          echo "🔍 Checking for audit trail implementation..."
+          
+          # Check for audit logging functions
+          if grep -r -E "(audit|log_access|track_access)" \
+            --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
+            --exclude-dir=node_modules src/ || true; then
+            echo "✅ Audit logging implementation found"
+          else
+            echo "⚠️ No audit logging implementation detected"
+            echo "Consider implementing access logging for FERPA compliance"
+          fi
+
+  sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests with coverage
+        run: pnpm test:coverage
+        env:
+          CI: true
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  security-summary:
+    name: Security Scan Summary
+    runs-on: ubuntu-latest
+    needs: [sast-codeql, semgrep-sast, eslint-security, secret-scan, dependency-vulnerability-scan, license-compliance, ferpa-deep-scan, sonarcloud]
+    if: always()
+    
+    steps:
+      - name: Security Summary
+        run: |
+          echo "## Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Scan Type | Status | Critical for FERPA |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|--------------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| CodeQL SAST | ${{ needs.sast-codeql.result }} | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Semgrep SAST | ${{ needs.semgrep-sast.result }} | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| ESLint Security | ${{ needs.eslint-security.result }} | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Secret Scan | ${{ needs.secret-scan.result }} | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependency Scan | ${{ needs.dependency-vulnerability-scan.result }} | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| License Compliance | ${{ needs.license-compliance.result }} | ⚠️ |" >> $GITHUB_STEP_SUMMARY
+          echo "| FERPA Deep Scan | ${{ needs.ferpa-deep-scan.result }} | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| SonarCloud | ${{ needs.sonarcloud.result }} | ⚠️ |" >> $GITHUB_STEP_SUMMARY
+          
+          # Fail if any critical security scan failed
+          if [[ "${{ needs.sast-codeql.result }}" == "failure" ||
+                "${{ needs.secret-scan.result }}" == "failure" ||
+                "${{ needs.ferpa-deep-scan.result }}" == "failure" ]]; then
+            echo "❌ Critical security scans failed. Deployment blocked for FERPA compliance."
+            exit 1
+          fi
+          
+          echo "✅ Security scans completed. Check individual results for details."
