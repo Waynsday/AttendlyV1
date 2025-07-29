@@ -1,30 +1,19 @@
 'use client';
 
-/**
- * @fileoverview DashboardLayout component implementation
- * Provides the main layout structure for the dashboard with header, navigation, and content areas
- * Follows TDD green phase - implementing minimal functionality to pass failing tests
- */
-
 import * as React from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { 
   User, 
   LogOut, 
   Home, 
-  Users, 
   ClipboardList, 
-  AlertTriangle, 
-  FileText, 
-  Settings, 
-  UserCog,
   Menu,
-  X
+  X,
+  Search
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { cn } from '../utils/cn';
 
-// User interface based on test data
 interface User {
   id: string;
   name: string;
@@ -37,35 +26,22 @@ interface DashboardLayoutProps {
   user: User;
   children: React.ReactNode;
   onLogout?: () => void;
-  currentPath?: string;
 }
 
 export function DashboardLayout({ 
   user, 
   children, 
   onLogout,
-  currentPath 
 }: DashboardLayoutProps) {
-  const router = useRouter();
   const pathname = usePathname();
-  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [showUserMenu, setShowUserMenu] = React.useState(false);
 
-  const activePath = currentPath || pathname;
+  const navigationItems = [
+    { name: 'Dashboard', href: '/dashboard', icon: Home },
+    { name: 'Attendance', href: '/attendance', icon: ClipboardList },
+  ];
 
-  // Navigation items - simplified to only show Dashboard and Attendance
-  const getNavigationItems = () => {
-    const navigationItems = [
-      { name: 'Dashboard', href: '/dashboard', icon: Home },
-      { name: 'Attendance', href: '/attendance', icon: ClipboardList },
-    ];
-
-    return navigationItems;
-  };
-
-  const navigationItems = getNavigationItems();
-
-  // Get user initials for avatar
   const getUserInitials = (name: string) => {
     return name
       .split(' ')
@@ -74,64 +50,71 @@ export function DashboardLayout({
       .toUpperCase();
   };
 
-  const handleLogout = () => {
-    onLogout?.();
-  };
-
   return (
-    <div data-testid="dashboard-layout" className="min-h-screen bg-white">
+    <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
-      <header 
-        role="banner" 
-        aria-label="Site header"
-        className="bg-romoland-primary border-b border-romoland-primary shadow-sm"
-      >
-        <div className="px-4 sm:px-6 lg:px-8">
+      <header role="banner" className="bg-primary text-primary-foreground shadow-md sticky top-0 z-50">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Mobile menu button */}
-            <div className="flex items-center">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden text-white hover:bg-white/10"
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                aria-label="Toggle navigation menu"
-              >
-                {isSidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-              </Button>
-
-              {/* School name */}
-              <div className="ml-4 md:ml-0">
-                <h1 className="text-lg font-semibold text-white">
-                  {user.school}
-                </h1>
+            <div className="flex items-center space-x-4">
+              {/* Logo and School Name */}
+              <div className="flex-shrink-0">
+                <h1 className="text-xl font-heading">Attendly</h1>
+              </div>
+              <div className="hidden md:block">
+                <span className="text-lg text-primary-foreground/80">{user.school}</span>
               </div>
             </div>
 
-            {/* User menu */}
             <div className="flex items-center space-x-4">
+              {/* Desktop Navigation */}
+              <nav className="hidden md:flex space-x-4">
+                {navigationItems.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <a
+                      key={item.name}
+                      href={item.href}
+                      className={cn(
+                        'px-3 py-2 rounded-md text-sm font-medium text-primary-foreground/80 transition-colors',
+                        isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-primary-foreground/10 hover:text-primary-foreground'
+                      )}
+                      aria-current={isActive ? 'page' : undefined}
+                    >
+                      {item.name}
+                    </a>
+                  );
+                })}
+              </nav>
+
+              {/* Search Bar */}
+              <div className="hidden lg:block relative">
+                <input 
+                  type="search"
+                  placeholder="Search Students..."
+                  className="bg-primary-foreground/10 text-primary-foreground placeholder-primary-foreground/60 rounded-md py-1.5 pl-10 pr-4 w-56"
+                />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary-foreground/60" />
+              </div>
+
+              {/* User Menu */}
               <div className="relative">
                 <Button
                   variant="ghost"
-                  className="flex items-center space-x-2 text-white hover:bg-white/10"
+                  className="flex items-center space-x-2 text-primary-foreground hover:bg-accent/80 p-2 rounded-full"
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   aria-label="User menu"
                 >
                   <div 
-                    data-testid="user-avatar"
-                    className="w-8 h-8 bg-white text-romoland-primary rounded-full flex items-center justify-center text-sm font-medium"
+                    className="w-8 h-8 bg-accent text-accent-foreground rounded-full flex items-center justify-center text-sm font-medium"
                     title={`${user.name} avatar`}
                   >
                     {getUserInitials(user.name)}
                   </div>
-                  <div className="hidden md:block text-left">
-                    <div className="text-sm font-medium text-white">{user.name}</div>
-                    <div className="text-xs text-white/70">{user.email}</div>
-                  </div>
                 </Button>
 
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-popover border rounded-md shadow-lg z-50">
+                  <div className="absolute right-0 mt-2 w-48 bg-background text-foreground rounded-md shadow-lg z-50 ring-1 ring-black ring-opacity-5">
                     <div className="p-2">
                       <div className="px-2 py-1.5 text-sm font-medium">{user.name}</div>
                       <div className="px-2 py-1.5 text-xs text-muted-foreground">{user.email}</div>
@@ -139,107 +122,82 @@ export function DashboardLayout({
                     <hr className="border-border" />
                     <button
                       role="button"
-                      className="w-full flex items-center px-4 py-2 text-sm hover:bg-accent"
-                      onClick={handleLogout}
+                      className="w-full flex items-center px-4 py-2 text-sm hover:bg-muted"
+                      onClick={onLogout}
                       aria-label="Logout"
                     >
-                      <LogOut className="mr-2 h-4 w-4" />
+                      <LogOut className="mr-2 h-4 w-4 text-secondary" />
                       Logout
                     </button>
                   </div>
                 )}
+              </div>
 
-                {/* Direct logout button for tests - hidden but accessible */}
-                <button 
-                  className="sr-only"
-                  onClick={handleLogout}
-                  aria-label="Logout"
+              {/* Mobile menu button */}
+              <div className="md:hidden">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-primary-foreground hover:bg-accent/80"
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  aria-label="Toggle navigation menu"
                 >
-                  Logout
-                </button>
+                  {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                </Button>
               </div>
             </div>
           </div>
         </div>
-      </header>
 
-      <div className="flex">
-        {/* Sidebar Navigation */}
-        <nav 
-          role="navigation"
-          aria-label="Main navigation"
-          className={cn(
-            'bg-romoland-primary border-r border-romoland-primary w-64 min-h-[calc(100vh-4rem)] fixed md:static transition-transform duration-300 ease-in-out z-40',
-            isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-          )}
-        >
-          <div className="p-6">
-            <ul className="space-y-2">
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden bg-primary/95 backdrop-blur-sm">
+            <nav className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
               {navigationItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = activePath === item.href || activePath?.startsWith(item.href + '/');
-                
+                const isActive = pathname === item.href;
                 return (
-                  <li key={item.name}>
-                    <a
-                      href={item.href}
-                      className={cn(
-                        'flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                        isActive
-                          ? 'bg-white text-romoland-primary'
-                          : 'text-white/70 hover:bg-white/10 hover:text-white'
-                      )}
-                      aria-current={isActive ? 'page' : undefined}
-                    >
-                      <Icon className="h-5 w-5" />
-                      <span>{item.name}</span>
-                    </a>
-                  </li>
+                  <a
+                    key={item.name}
+                    href={item.href}
+                    className={cn(
+                      'flex items-center space-x-3 px-3 py-2 rounded-md text-base font-medium text-primary-foreground/80',
+                      isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-primary-foreground/10 hover:text-primary-foreground'
+                    )}
+                    aria-current={isActive ? 'page' : undefined}
+                  >
+                    <item.icon className="h-6 w-6" />
+                    <span>{item.name}</span>
+                  </a>
                 );
               })}
-            </ul>
+            </nav>
           </div>
-        </nav>
-
-        {/* Mobile overlay */}
-        {isSidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
-            onClick={() => setIsSidebarOpen(false)}
-          />
         )}
+      </header>
 
-        {/* Main Content */}
-        <main 
-          role="main"
-          id="main-content"
-          aria-label="Dashboard content"
-          className="flex-1 min-w-0 bg-white"
-          data-testid="dashboard-content"
-        >
-          <div className="p-6">
-            {children}
+      {/* Main Content */}
+      <main role="main" id="main-content" className="flex-1 w-full">
+        <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+          {children}
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer role="contentinfo" className="bg-primary text-primary-foreground/80 mt-auto">
+        <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div className="text-center md:text-left mb-4 md:mb-0">
+              <p>&copy; {new Date().getFullYear()} Romoland School District. All Rights Reserved.</p>
+              <p className="text-sm">Powered by Attendly</p>
+            </div>
+            <div className="flex space-x-4">
+              <a href="#" className="hover:text-primary-foreground">Privacy Policy</a>
+              <a href="#" className="hover:text-primary-foreground">Terms of Service</a>
+              <a href="#" className="hover:text-primary-foreground">Contact Us</a>
+            </div>
           </div>
-
-          {/* Live announcements for screen readers */}
-          <div 
-            role="status"
-            aria-live="polite"
-            aria-label="Live announcements"
-            className="sr-only"
-          >
-            {/* Screen reader announcements will be updated here */}
-          </div>
-        </main>
-      </div>
-
-      {/* Skip link for accessibility */}
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 bg-primary text-primary-foreground px-4 py-2 z-50"
-      >
-        Skip to main content
-      </a>
+        </div>
+      </footer>
     </div>
   );
 }

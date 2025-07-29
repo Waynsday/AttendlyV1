@@ -20,12 +20,12 @@ export default function DashboardPage() {
       totalStudents: 180,
       attendanceRate: 94.2,
       chronicAbsentees: 15,
-      tier1: 15,
-      tier2: 8,
-      tier3: 3,
+      tier1: 150,
+      tier2: 15,
+      tier3: 15,
       trend: 'stable' as const,
       riskLevel: 'low' as const,
-      lastUpdated: '2025-01-15T10:30:00Z',
+      lastUpdated: '2025-07-29T10:30:00Z',
       monthlyTrend: [
         { month: 'Sep', rate: 93.5 },
         { month: 'Oct', rate: 94.1 },
@@ -37,12 +37,12 @@ export default function DashboardPage() {
       totalStudents: 165,
       attendanceRate: 93.8,
       chronicAbsentees: 12,
-      tier1: 12,
-      tier2: 9,
-      tier3: 5,
+      tier1: 140,
+      tier2: 13,
+      tier3: 12,
       trend: 'up' as const,
       riskLevel: 'low' as const,
-      lastUpdated: '2025-01-15T10:30:00Z',
+      lastUpdated: '2025-07-29T10:30:00Z',
       monthlyTrend: [
         { month: 'Sep', rate: 93.2 },
         { month: 'Oct', rate: 93.5 },
@@ -54,12 +54,12 @@ export default function DashboardPage() {
       totalStudents: 158,
       attendanceRate: 95.1,
       chronicAbsentees: 10,
-      tier1: 10,
+      tier1: 142,
       tier2: 6,
-      tier3: 2,
+      tier3: 10,
       trend: 'up' as const,
       riskLevel: 'low' as const,
-      lastUpdated: '2025-01-15T10:30:00Z',
+      lastUpdated: '2025-07-29T10:30:00Z',
       monthlyTrend: [
         { month: 'Sep', rate: 94.8 },
         { month: 'Oct', rate: 95.0 },
@@ -71,12 +71,12 @@ export default function DashboardPage() {
       totalStudents: 172,
       attendanceRate: 92.9,
       chronicAbsentees: 14,
-      tier1: 14,
+      tier1: 147,
       tier2: 11,
-      tier3: 7,
+      tier3: 14,
       trend: 'stable' as const,
       riskLevel: 'medium' as const,
-      lastUpdated: '2025-01-15T10:30:00Z',
+      lastUpdated: '2025-07-29T10:30:00Z',
       monthlyTrend: [
         { month: 'Sep', rate: 92.8 },
         { month: 'Oct', rate: 92.9 },
@@ -88,12 +88,12 @@ export default function DashboardPage() {
       totalStudents: 168,
       attendanceRate: 94.6,
       chronicAbsentees: 13,
-      tier1: 13,
+      tier1: 148,
       tier2: 7,
-      tier3: 4,
+      tier3: 13,
       trend: 'up' as const,
       riskLevel: 'low' as const,
-      lastUpdated: '2025-01-15T10:30:00Z',
+      lastUpdated: '2025-07-29T10:30:00Z',
       monthlyTrend: [
         { month: 'Sep', rate: 94.2 },
         { month: 'Oct', rate: 94.4 },
@@ -105,12 +105,12 @@ export default function DashboardPage() {
       totalStudents: 155,
       attendanceRate: 93.3,
       chronicAbsentees: 11,
-      tier1: 11,
-      tier2: 10,
-      tier3: 6,
+      tier1: 133,
+      tier2: 11,
+      tier3: 11,
       trend: 'down' as const,
       riskLevel: 'medium' as const,
-      lastUpdated: '2025-01-15T10:30:00Z',
+      lastUpdated: '2025-07-29T10:30:00Z',
       monthlyTrend: [
         { month: 'Sep', rate: 93.8 },
         { month: 'Oct', rate: 93.5 },
@@ -123,10 +123,10 @@ export default function DashboardPage() {
     <DashboardLayout user={mockUser}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-romoland-primary">
-            AP Attendance Recovery Dashboard
+          <h1 className="text-2xl font-heading text-foreground">
+            Attendance Dashboard
           </h1>
-          <div className="text-sm text-romoland-text">
+          <div className="text-sm text-muted-foreground">
             Romoland School District
           </div>
         </div>

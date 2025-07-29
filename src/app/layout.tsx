@@ -1,9 +1,20 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Montserrat, Syne } from "next/font/google";
 import "./globals.css";
 import { DevToolsProvider } from "@/components/providers/devtools-provider";
+import { cn } from "@/presentation/utils/cn";
 
-const inter = Inter({ subsets: ["latin"] });
+// Font configuration from design-tokens.json
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  variable: "--font-montserrat",
+});
+
+const syne = Syne({
+  subsets: ["latin"],
+  variable: "--font-syne",
+  weight: "700",
+});
 
 export const metadata: Metadata = {
   title: "AttendlyV1 - School Attendance Recovery System",
@@ -21,7 +32,14 @@ export default function RootLayout({
       <head>
         {/* RSC-compatible head - no external devtools scripts */}
       </head>
-      <body className={`${inter.className} antialiased`} suppressHydrationWarning>
+      <body 
+        className={cn(
+          "min-h-screen bg-romoland-light-bg font-sans text-romoland-text antialiased",
+          montserrat.variable,
+          syne.variable
+        )} 
+        suppressHydrationWarning
+      >
         <DevToolsProvider>
           {children}
         </DevToolsProvider>

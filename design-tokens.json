@@ -5,7 +5,12 @@
     "accent": "#f97316",
     "text": "#636363",
     "background": "#ffffff",
-    "lightBackground": "#f8f8f8"
+    "lightBackground": "#f8f8f8",
+    "risk": {
+      "low": "#16a34a",
+      "medium": "#eab308",
+      "high": "#dc2626"
+    }
   },
   "fonts": {
     "primary": "Montserrat, sans-serif",
