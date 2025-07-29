@@ -36,7 +36,9 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for static files in development
+     * SECURITY: Match all request paths except for static files
+     * Ensures all API and page requests go through security middleware
+     * Excludes static assets to prevent performance impact
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2|ttf|eot)$).*)',
   ],

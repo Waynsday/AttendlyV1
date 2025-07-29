@@ -18,6 +18,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Load devtools blocker script as early as possible */}
+        {process.env.NODE_ENV === 'development' && (
+          <script 
+            src="/devtools-blocker.js" 
+            defer={false}
+            async={false}
+          />
+        )}
+      </head>
       <body className={`${inter.className} antialiased`} suppressHydrationWarning>
         <DevToolsProvider>
           {children}

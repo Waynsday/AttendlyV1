@@ -1,0 +1,140 @@
+name: Development Environment Validation
+
+on:
+  push:
+    branches: [main, develop, 'feat/**', 'fix/**']
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run daily at 2 AM UTC to catch environment drift
+    - cron: '0 2 * * *'
+
+jobs:
+  validate-environment:
+    name: Validate Development Environment
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+        
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+          
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+          
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+            
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        
+      - name: Create test environment file
+        run: |
+          cp .env.example .env.local
+          # Update with test values
+          echo "DATABASE_URL=postgresql://test:test@localhost:5432/test" >> .env.local
+          echo "NEXT_PUBLIC_SUPABASE_URL=https://test.supabase.co" >> .env.local
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=test-anon-key-for-validation" >> .env.local
+          
+      - name: Validate environment configuration
+        run: node scripts/env-validator.js
+        
+      - name: Check TypeScript
+        run: pnpm tsc --noEmit
+        
+      - name: Run linter
+        run: pnpm lint
+        
+      - name: Test build
+        run: pnpm build
+        
+      - name: Run tests
+        run: pnpm test
+        
+      - name: Check for security vulnerabilities
+        run: pnpm audit --production
+        continue-on-error: true
+        
+  docker-validation:
+    name: Validate Docker Configuration
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Validate Docker Compose
+        run: |
+          docker-compose -f docker-compose.dev.yml config
+          
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.dev
+          push: false
+          tags: attendly-dev:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          
+      - name: Test Docker Compose startup
+        run: |
+          docker-compose -f docker-compose.dev.yml up -d
+          sleep 30
+          docker-compose -f docker-compose.dev.yml ps
+          docker-compose -f docker-compose.dev.yml logs app
+          docker-compose -f docker-compose.dev.yml down
+          
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+          
+      - name: Check for exposed secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
