@@ -10,13 +10,29 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { cn } from '../utils/cn';
-import {
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-} from 'recharts';
+import dynamic from 'next/dynamic';
+
+// Dynamically import recharts to avoid SSR issues
+const ResponsiveContainer = dynamic(
+  () => import('recharts').then((mod) => mod.ResponsiveContainer),
+  { ssr: false }
+);
+const PieChart = dynamic(
+  () => import('recharts').then((mod) => mod.PieChart),
+  { ssr: false }
+);
+const Pie = dynamic(
+  () => import('recharts').then((mod) => mod.Pie),
+  { ssr: false }
+);
+const Cell = dynamic(
+  () => import('recharts').then((mod) => mod.Cell),
+  { ssr: false }
+);
+const Tooltip = dynamic(
+  () => import('recharts').then((mod) => mod.Tooltip),
+  { ssr: false }
+);
 
 // Types based on test data structure
 interface GradeData {
@@ -73,6 +89,12 @@ const AttendanceCardComponent = ({
 }: AttendanceCardProps) => {
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Handle client-side mounting
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const pieData = useMemo(() => {
     if (!gradeData || gradeData.totalStudents === 0) return [];
@@ -187,16 +209,22 @@ const AttendanceCardComponent = ({
         </div>
 
         <div className="flex justify-center pt-2">
-          <ResponsiveContainer width="100%" height={120}>
-            <PieChart>
-              <Pie data={pieData} cx="50%" cy="50%" innerRadius={30} outerRadius={50} dataKey="value" paddingAngle={5}>
-                {pieData.map((entry) => (
-                  <Cell key={`cell-${entry.tier}`} fill={TIER_COLORS[entry.tier as keyof typeof TIER_COLORS]} stroke={TIER_COLORS[entry.tier as keyof typeof TIER_COLORS]} />
-                ))}
-              </Pie>
-              <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
-            </PieChart>
-          </ResponsiveContainer>
+          {isMounted ? (
+            <ResponsiveContainer width="100%" height={120}>
+              <PieChart>
+                <Pie data={pieData} cx="50%" cy="50%" innerRadius={30} outerRadius={50} dataKey="value" paddingAngle={5}>
+                  {pieData.map((entry) => (
+                    <Cell key={`cell-${entry.tier}`} fill={TIER_COLORS[entry.tier as keyof typeof TIER_COLORS]} stroke={TIER_COLORS[entry.tier as keyof typeof TIER_COLORS]} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="w-full h-[120px] flex items-center justify-center bg-muted rounded">
+              <div className="text-sm text-muted-foreground">Loading chart...</div>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-3 gap-2 text-center text-sm pt-2">
