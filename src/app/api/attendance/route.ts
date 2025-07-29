@@ -40,6 +40,8 @@ import {
  * GET /api/attendance - Retrieve attendance records with security controls
  */
 export async function GET(request: NextRequest) {
+  let authContext: any = null;
+  
   try {
     // 1. Rate limiting check
     const userId = request.headers.get('X-User-ID');
@@ -48,7 +50,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Authentication and authorization
-    const authContext = await authMiddleware(request);
+    authContext = await authMiddleware(request);
     
     // 3. Educational interest validation for attendance data
     if (authContext.educationalInterest === 'NONE') {
@@ -131,7 +133,7 @@ export async function GET(request: NextRequest) {
       logSecurityEvent({
         type: 'ATTENDANCE_DATA_ACCESS_DENIED',
         severity: ErrorSeverity.MEDIUM,
-        userId: userId || 'unknown',
+        userId: authContext?.userId || 'unknown',
         ipAddress: request.headers.get('X-Forwarded-For') || 'unknown',
         userAgent: request.headers.get('User-Agent') || 'unknown',
         correlationId: request.headers.get('X-Request-ID') || 'unknown',
@@ -141,7 +143,7 @@ export async function GET(request: NextRequest) {
     }
 
     const errorResponse = createSecureErrorResponse(error as Error, {
-      userId: userId || 'unknown',
+      userId: authContext?.userId || 'unknown',
       requestId: request.headers.get('X-Request-ID') || 'unknown'
     });
 
@@ -157,6 +159,8 @@ export async function GET(request: NextRequest) {
  * POST /api/attendance - Create attendance record or bulk import
  */
 export async function POST(request: NextRequest) {
+  let authContext: any = null;
+  
   try {
     // 1. Rate limiting check (stricter for POST operations)
     const userId = request.headers.get('X-User-ID');
@@ -168,7 +172,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Authentication and authorization
-    const authContext = await authMiddleware(request);
+    authContext = await authMiddleware(request);
     
     // 3. Check create permissions
     if (!authContext.permissions.includes('CREATE_ATTENDANCE') && 
@@ -194,7 +198,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     const errorResponse = createSecureErrorResponse(error as Error, {
-      userId: userId || 'unknown',
+      userId: authContext?.userId || 'unknown',
       requestId: request.headers.get('X-Request-ID') || 'unknown'
     });
 
@@ -297,7 +301,7 @@ async function handleBulkAttendanceImport(request: NextRequest, authContext: any
       } catch (validationError) {
         validationErrors.push({
           row: i + 1,
-          error: validationError.message,
+          error: validationError instanceof Error ? validationError.message : String(validationError),
           data: csvData[i]
         });
       }
@@ -356,7 +360,7 @@ async function handleBulkAttendanceImport(request: NextRequest, authContext: any
       severity: ErrorSeverity.HIGH,
       userId: authContext.userId,
       correlationId: request.headers.get('X-Request-ID') || 'unknown',
-      details: `Bulk import failed: ${error.message}`,
+      details: `Bulk import failed: ${error instanceof Error ? error.message : String(error)}`,
       timestamp: new Date()
     });
 
@@ -368,6 +372,8 @@ async function handleBulkAttendanceImport(request: NextRequest, authContext: any
  * PUT /api/attendance/[id] - Update attendance record
  */
 export async function PUT(request: NextRequest) {
+  let authContext: any = null;
+  
   try {
     // 1. Rate limiting check
     const userId = request.headers.get('X-User-ID');
@@ -379,7 +385,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // 2. Authentication and authorization
-    const authContext = await authMiddleware(request);
+    authContext = await authMiddleware(request);
     
     // 3. Check update permissions
     if (!authContext.permissions.includes('UPDATE_ATTENDANCE') && 
@@ -431,7 +437,7 @@ export async function PUT(request: NextRequest) {
 
   } catch (error) {
     const errorResponse = createSecureErrorResponse(error as Error, {
-      userId: userId || 'unknown',
+      userId: authContext?.userId || 'unknown',
       requestId: request.headers.get('X-Request-ID') || 'unknown'
     });
 

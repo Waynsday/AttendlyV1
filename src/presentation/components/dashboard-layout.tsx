@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * @fileoverview DashboardLayout component implementation
  * Provides the main layout structure for the dashboard with header, navigation, and content areas
@@ -126,7 +128,7 @@ export function DashboardLayout({
                   <div 
                     data-testid="user-avatar"
                     className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium"
-                    alt={`${user.name} avatar`}
+                    title={`${user.name} avatar`}
                   >
                     {getUserInitials(user.name)}
                   </div>

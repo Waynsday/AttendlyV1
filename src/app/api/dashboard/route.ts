@@ -37,6 +37,8 @@ import {
  * GET /api/dashboard - Retrieve dashboard metrics with security controls
  */
 export async function GET(request: NextRequest) {
+  let authContext: any = null;
+  
   try {
     // 1. Rate limiting check with admin bypass
     const userId = request.headers.get('X-User-ID');
@@ -50,7 +52,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Authentication and authorization
-    const authContext = await authMiddleware(request);
+    authContext = await authMiddleware(request);
     
     // 3. Educational interest validation for dashboard access
     if (authContext.educationalInterest === 'NONE') {
@@ -131,7 +133,7 @@ export async function GET(request: NextRequest) {
       logSecurityEvent({
         type: 'DASHBOARD_ACCESS_DENIED',
         severity: ErrorSeverity.MEDIUM,
-        userId: userId || 'unknown',
+        userId: authContext?.userId || 'unknown',
         ipAddress: request.headers.get('X-Forwarded-For') || 'unknown',
         userAgent: request.headers.get('User-Agent') || 'unknown',
         correlationId: request.headers.get('X-Request-ID') || 'unknown',
@@ -141,7 +143,7 @@ export async function GET(request: NextRequest) {
     }
 
     const errorResponse = createSecureErrorResponse(error as Error, {
-      userId: userId || 'unknown',
+      userId: authContext?.userId || 'unknown',
       requestId: request.headers.get('X-Request-ID') || 'unknown'
     });
 
@@ -157,6 +159,8 @@ export async function GET(request: NextRequest) {
  * POST /api/dashboard/refresh - Force refresh dashboard data (admin only)
  */
 export async function POST(request: NextRequest) {
+  let authContext: any = null;
+  
   try {
     // 1. Strict rate limiting for refresh operations
     const userId = request.headers.get('X-User-ID');
@@ -168,7 +172,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Authentication and authorization
-    const authContext = await authMiddleware(request);
+    authContext = await authMiddleware(request);
     
     // 3. Check admin permissions for cache refresh
     if (authContext.role !== 'ADMINISTRATOR' && 
@@ -218,7 +222,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     const errorResponse = createSecureErrorResponse(error as Error, {
-      userId: userId || 'unknown',
+      userId: authContext?.userId || 'unknown',
       requestId: request.headers.get('X-Request-ID') || 'unknown'
     });
 

@@ -406,11 +406,5 @@ export class InputValidator {
 }
 
 /**
- * Export all validation utilities
+ * All validation utilities are exported above
  */
-export { 
-  InputSanitizer,
-  InputValidator,
-  StudentDataSchemas,
-  APIInputSchemas
-};

@@ -17,19 +17,19 @@ export function DevToolsProvider({ children }: DevToolsProviderProps) {
     if (process.env.NODE_ENV === 'development') {
       // Prevent Next.js from loading devtools chunks
       const originalDefineProperty = Object.defineProperty;
-      Object.defineProperty = function(obj, prop, descriptor) {
+      Object.defineProperty = function<T>(obj: T, prop: PropertyKey, descriptor: PropertyDescriptor): T {
         // Block any attempts to load Next.js devtools modules
         if (typeof prop === 'string' && prop.includes('next-devtools')) {
           return obj;
         }
-        return originalDefineProperty.call(this, obj, prop, descriptor);
+        return originalDefineProperty.call(this, obj, prop, descriptor) as T;
       };
       
       // Block devtools chunk requests at the network level
       if (typeof window !== 'undefined' && window.fetch) {
         const originalFetch = window.fetch;
         window.fetch = function(input, init) {
-          const url = typeof input === 'string' ? input : input.url;
+          const url = typeof input === 'string' ? input : (input as Request).url;
           if (url && url.includes('next-devtools')) {
             // Return empty response for devtools chunks
             return Promise.resolve(new Response('', { status: 204 }));

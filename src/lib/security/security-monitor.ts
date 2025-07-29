@@ -186,8 +186,8 @@ export class SecurityMonitor extends EventEmitter {
   private alerts: SecurityAlert[] = [];
   private metrics: SecurityMetrics;
   private eventBuffer: SecurityEvent[] = [];
-  private processingInterval: NodeJS.Timeout;
-  private metricsInterval: NodeJS.Timeout;
+  private processingInterval!: NodeJS.Timeout;
+  private metricsInterval!: NodeJS.Timeout;
 
   constructor(config: Partial<SecurityMonitorConfig> = {}) {
     super();
@@ -489,7 +489,7 @@ export class SecurityMonitor extends EventEmitter {
       }
     } catch (error) {
       action.result = 'FAILED';
-      action.details = error.message;
+      action.details = error instanceof Error ? error.message : String(error);
     }
 
     alert.actions.push(action);
@@ -604,7 +604,7 @@ export class SecurityMonitor extends EventEmitter {
     }
 
     if (options.since) {
-      alerts = alerts.filter(a => a.timestamp >= options.since);
+      alerts = alerts.filter(a => a.timestamp >= options.since!);
     }
 
     if (options.limit) {
@@ -895,10 +895,4 @@ export class SecurityMonitor extends EventEmitter {
 // Export singleton instance
 export const securityMonitor = new SecurityMonitor();
 
-// Export types
-export type { 
-  SecurityEvent, 
-  SecurityAlert, 
-  SecurityMetrics, 
-  SecurityMonitorConfig 
-};
+// Types are exported above where they are defined

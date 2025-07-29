@@ -358,18 +358,14 @@ export function StudentList({
         <div data-testid="table-container" className="overflow-x-auto">
           {filteredStudents.length > 100 ? (
             // Virtual scrolling for large datasets
-            <List
-              height={600}
-              width="100%"
-              itemCount={filteredStudents.length}
-              itemSize={60}
-              itemData={filteredStudents}
-              outerProps={{
-                'data-testid': 'virtual-list',
-                'data-item-count': filteredStudents.length,
-                'data-item-size': 60
-              }}
-            >
+            <div data-testid="virtual-list" data-item-count={filteredStudents.length} data-item-size={60}>
+              <List
+                height={600}
+                width="100%"
+                itemCount={filteredStudents.length}
+                itemSize={60}
+                itemData={filteredStudents}
+              >
               {({ index, style, data }) => {
                 const student = data[index];
                 return (
@@ -389,6 +385,7 @@ export function StudentList({
                 );
               }}
             </List>
+            </div>
           ) : (
             // Regular table for smaller datasets
             <table 
@@ -413,7 +410,7 @@ export function StudentList({
                     role="columnheader" 
                     className="text-left p-2 cursor-pointer select-none"
                     onClick={() => handleSort('name')}
-                    aria-sort={sortField === 'name' ? sortDirection : 'none'}
+                    aria-sort={sortField === 'name' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
                   >
                     Student Name
                     {sortField === 'name' && (
@@ -428,7 +425,7 @@ export function StudentList({
                     role="columnheader" 
                     className="text-left p-2 cursor-pointer select-none"
                     onClick={() => handleSort('attendancePercentage')}
-                    aria-sort={sortField === 'attendancePercentage' ? sortDirection : 'none'}
+                    aria-sort={sortField === 'attendancePercentage' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
                   >
                     Attendance %
                   </th>
@@ -437,7 +434,7 @@ export function StudentList({
                       role="columnheader" 
                       className="text-left p-2 cursor-pointer select-none"
                       onClick={() => handleSort('daysAbsent')}
-                      aria-sort={sortField === 'daysAbsent' ? sortDirection : 'none'}
+                      aria-sort={sortField === 'daysAbsent' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
                     >
                       Days Absent
                     </th>

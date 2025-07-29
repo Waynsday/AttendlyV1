@@ -340,7 +340,7 @@ export const StudentCard: React.FC<StudentCardProps> = ({
         onOpenAutoFocus={(e) => {
           // Focus the dialog content for screen readers and keyboard users
           e.preventDefault();
-          const dialogElement = e.currentTarget;
+          const dialogElement = e.currentTarget as HTMLElement;
           if (dialogElement) {
             dialogElement.focus();
           }

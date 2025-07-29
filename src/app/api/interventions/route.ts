@@ -39,6 +39,8 @@ import {
  * GET /api/interventions - Retrieve interventions with security controls
  */
 export async function GET(request: NextRequest) {
+  let authContext: any = null;
+  
   try {
     // 1. Rate limiting check
     const userId = request.headers.get('X-User-ID');
@@ -47,7 +49,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Authentication and authorization
-    const authContext = await authMiddleware(request);
+    authContext = await authMiddleware(request);
     
     // 3. Educational interest validation for intervention data
     if (authContext.educationalInterest === 'NONE') {
@@ -129,7 +131,7 @@ export async function GET(request: NextRequest) {
       logSecurityEvent({
         type: 'INTERVENTION_DATA_ACCESS_DENIED',
         severity: ErrorSeverity.MEDIUM,
-        userId: userId || 'unknown',
+        userId: authContext?.userId || 'unknown',
         ipAddress: request.headers.get('X-Forwarded-For') || 'unknown',
         userAgent: request.headers.get('User-Agent') || 'unknown',
         correlationId: request.headers.get('X-Request-ID') || 'unknown',
@@ -139,7 +141,7 @@ export async function GET(request: NextRequest) {
     }
 
     const errorResponse = createSecureErrorResponse(error as Error, {
-      userId: userId || 'unknown',
+      userId: authContext?.userId || 'unknown',
       requestId: request.headers.get('X-Request-ID') || 'unknown'
     });
 
@@ -155,6 +157,8 @@ export async function GET(request: NextRequest) {
  * POST /api/interventions - Create new intervention with security validation
  */
 export async function POST(request: NextRequest) {
+  let authContext: any = null;
+  
   try {
     // 1. Rate limiting check (moderate for intervention creation)
     const userId = request.headers.get('X-User-ID');
@@ -166,7 +170,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Authentication and authorization
-    const authContext = await authMiddleware(request);
+    authContext = await authMiddleware(request);
     
     // 3. Check create permissions
     if (!authContext.permissions.includes('CREATE_INTERVENTIONS') && 
@@ -232,7 +236,7 @@ export async function POST(request: NextRequest) {
       logSecurityEvent({
         type: 'INVALID_INTERVENTION_DATA_SUBMISSION',
         severity: ErrorSeverity.LOW,
-        userId: userId || 'unknown',
+        userId: authContext?.userId || 'unknown',
         ipAddress: request.headers.get('X-Forwarded-For') || 'unknown',
         correlationId: request.headers.get('X-Request-ID') || 'unknown',
         details: `Validation failed: ${error.message}`,
@@ -241,7 +245,7 @@ export async function POST(request: NextRequest) {
     }
 
     const errorResponse = createSecureErrorResponse(error as Error, {
-      userId: userId || 'unknown',
+      userId: authContext?.userId || 'unknown',
       requestId: request.headers.get('X-Request-ID') || 'unknown'
     });
 
@@ -257,6 +261,8 @@ export async function POST(request: NextRequest) {
  * PUT /api/interventions/[id] - Update intervention with security validation
  */
 export async function PUT(request: NextRequest) {
+  let authContext: any = null;
+  
   try {
     // 1. Rate limiting check
     const userId = request.headers.get('X-User-ID');
@@ -268,7 +274,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // 2. Authentication and authorization
-    const authContext = await authMiddleware(request);
+    authContext = await authMiddleware(request);
     
     // 3. Check update permissions
     if (!authContext.permissions.includes('UPDATE_INTERVENTIONS') && 
@@ -338,7 +344,7 @@ export async function PUT(request: NextRequest) {
 
   } catch (error) {
     const errorResponse = createSecureErrorResponse(error as Error, {
-      userId: userId || 'unknown',
+      userId: authContext?.userId || 'unknown',
       requestId: request.headers.get('X-Request-ID') || 'unknown'
     });
 
@@ -354,6 +360,8 @@ export async function PUT(request: NextRequest) {
  * DELETE /api/interventions/[id] - Delete intervention with strict security validation
  */
 export async function DELETE(request: NextRequest) {
+  let authContext: any = null;
+  
   try {
     // 1. Rate limiting check (strict for deletes)
     const userId = request.headers.get('X-User-ID');
@@ -365,7 +373,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // 2. Authentication and authorization
-    const authContext = await authMiddleware(request);
+    authContext = await authMiddleware(request);
     
     // 3. Check delete permissions (only certain roles can delete interventions)
     if (!authContext.permissions.includes('DELETE_INTERVENTIONS') && 
@@ -423,7 +431,7 @@ export async function DELETE(request: NextRequest) {
 
   } catch (error) {
     const errorResponse = createSecureErrorResponse(error as Error, {
-      userId: userId || 'unknown',
+      userId: authContext?.userId || 'unknown',
       requestId: request.headers.get('X-Request-ID') || 'unknown'
     });
 

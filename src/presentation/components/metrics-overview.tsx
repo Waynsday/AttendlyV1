@@ -502,6 +502,7 @@ export function MetricsOverview({
                 // Use virtualization for large lists
                 <List
                   height={400}
+                  width="100%"
                   itemCount={Math.min(topStudents.length, 20)}
                   itemSize={80}
                   itemData={topStudents}

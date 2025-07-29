@@ -3,8 +3,17 @@ import { MetricsOverview } from '@/presentation/components/metrics-overview';
 import { StudentList } from '@/presentation/components/student-list';
 
 export default function DashboardPage() {
+  // Mock user data for development
+  const mockUser = {
+    id: '1',
+    name: 'John Doe',
+    email: 'john.doe@romolandschool.edu',
+    role: 'teacher',
+    school: 'Romoland Elementary'
+  };
+
   return (
-    <DashboardLayout>
+    <DashboardLayout user={mockUser}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">
@@ -15,7 +24,13 @@ export default function DashboardPage() {
           </div>
         </div>
         
-        <MetricsOverview />
+        <MetricsOverview 
+          attendanceData={[]}
+          gradeData={[]}
+          dayData={[]}
+          topStudents={[]}
+          improvedStudents={[]}
+        />
         
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b border-gray-200">
@@ -26,7 +41,7 @@ export default function DashboardPage() {
               Chronic absentees requiring intervention
             </p>
           </div>
-          <StudentList />
+          <StudentList students={[]} />
         </div>
       </div>
     </DashboardLayout>

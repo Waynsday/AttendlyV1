@@ -34,8 +34,7 @@ export async function GET(request: NextRequest) {
                      'unknown';
     
     await rateLimiter.checkIPLimit(ipAddress, request, {
-      customLimit: 1000, // Very lenient for health checks
-      window: 60000
+      customLimit: 1000 // Very lenient for health checks
     });
 
     // 2. Basic health status check (no sensitive information)
@@ -87,7 +86,7 @@ export async function GET(request: NextRequest) {
  * Perform basic health checks without exposing sensitive information
  */
 async function performHealthChecks() {
-  const checks = {
+  const checks: any = {
     api: 'healthy',
     timestamp: new Date().toISOString()
   };

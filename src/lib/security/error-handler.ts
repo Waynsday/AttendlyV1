@@ -111,13 +111,35 @@ export class AuthenticationError extends Error {
   public readonly attemptCount?: number;
   public readonly lockoutTime?: Date;
   public readonly userId?: string;
+  public readonly sessionId?: string;
+  public readonly timestamp?: Date;
+  public readonly expiredAt?: Date;
+  public readonly ipAddress?: string;
+  public readonly blockReason?: string;
+  public readonly attemptsRemaining?: number;
 
-  constructor(message: string, context: { userId?: string; attemptCount?: number; lockoutTime?: Date } = {}) {
+  constructor(message: string, context: { 
+    userId?: string; 
+    attemptCount?: number; 
+    lockoutTime?: Date; 
+    sessionId?: string; 
+    timestamp?: Date;
+    expiredAt?: Date;
+    ipAddress?: string;
+    blockReason?: string;
+    attemptsRemaining?: number;
+  } = {}) {
     super(message);
     this.name = 'AuthenticationError';
     this.userId = context.userId;
     this.attemptCount = context.attemptCount;
     this.lockoutTime = context.lockoutTime;
+    this.sessionId = context.sessionId;
+    this.timestamp = context.timestamp;
+    this.expiredAt = context.expiredAt;
+    this.ipAddress = context.ipAddress;
+    this.blockReason = context.blockReason;
+    this.attemptsRemaining = context.attemptsRemaining;
   }
 }
 
@@ -131,12 +153,20 @@ export class AuthorizationError extends Error {
   public readonly resource?: string;
   public readonly requiredPermission?: string;
   public readonly userPermissions?: string[];
+  public readonly sessionId?: string;
+  public readonly educationalInterest?: string;
+  public readonly resourceType?: string;
+  public readonly timestamp?: Date;
 
   constructor(message: string, context: { 
     userId?: string; 
     resource?: string; 
     requiredPermission?: string; 
     userPermissions?: string[];
+    sessionId?: string;
+    educationalInterest?: string;
+    resourceType?: string;
+    timestamp?: Date;
   } = {}) {
     super(message);
     this.name = 'AuthorizationError';
@@ -144,6 +174,10 @@ export class AuthorizationError extends Error {
     this.resource = context.resource;
     this.requiredPermission = context.requiredPermission;
     this.userPermissions = context.userPermissions;
+    this.sessionId = context.sessionId;
+    this.educationalInterest = context.educationalInterest;
+    this.resourceType = context.resourceType;
+    this.timestamp = context.timestamp;
   }
 }
 

@@ -115,23 +115,13 @@ export async function authMiddleware(
     // 1. Extract and validate Authorization header
     const authHeader = request.headers.get('Authorization');
     if (!authHeader) {
-      throw new AuthenticationError('No authentication token provided', {
-        requestId,
-        ipAddress,
-        userAgent,
-        timestamp: new Date()
-      });
+      throw new AuthenticationError('No authentication token provided');
     }
 
     // 2. Parse Bearer token
     const tokenMatch = authHeader.match(/^Bearer\s+(.+)$/);
     if (!tokenMatch) {
-      throw new AuthenticationError('Invalid authorization header format', {
-        requestId,
-        ipAddress,
-        userAgent,
-        timestamp: new Date()
-      });
+      throw new AuthenticationError('Invalid authorization header format');
     }
 
     const token = tokenMatch[1];
@@ -158,48 +148,23 @@ export async function authMiddleware(
       }) as JWTPayload;
     } catch (jwtError: any) {
       if (jwtError.name === 'TokenExpiredError') {
-        throw new AuthenticationError('Token has expired', {
-          requestId,
-          ipAddress,
-          userAgent,
-          timestamp: new Date()
-        });
+        throw new AuthenticationError('Token has expired');
       } else if (jwtError.name === 'JsonWebTokenError') {
-        throw new AuthenticationError('Invalid token signature', {
-          requestId,
-          ipAddress,
-          userAgent,
-          timestamp: new Date()
-        });
+        throw new AuthenticationError('Invalid token signature');
       } else {
-        throw new AuthenticationError('Token validation failed', {
-          requestId,
-          ipAddress,
-          userAgent,
-          timestamp: new Date()
-        });
+        throw new AuthenticationError('Token validation failed');
       }
     }
 
     // 4. Validate required JWT claims
     if (!payload.userId || !payload.employeeId || !payload.role) {
-      throw new AuthenticationError('Token missing required claims', {
-        requestId,
-        ipAddress,
-        userAgent,
-        timestamp: new Date()
-      });
+      throw new AuthenticationError('Token missing required claims');
     }
 
     // 5. Educational interest validation
     if (middlewareConfig.requireEducationalInterest !== false) {
       if (!payload.educationalInterest) {
-        throw new AuthenticationError('Token missing educational interest claim', {
-          requestId,
-          ipAddress,
-          userAgent,
-          timestamp: new Date()
-        });
+        throw new AuthenticationError('Token missing educational interest claim');
       }
     }
 
@@ -212,26 +177,14 @@ export async function authMiddleware(
         });
         
         if (!sessionValidation.valid) {
-          throw new AuthenticationError('Session expired or invalid', {
-            requestId,
-            ipAddress,
-            userAgent,
-            sessionId: payload.sessionId,
-            timestamp: new Date()
-          });
+          throw new AuthenticationError('Session expired or invalid');
         }
 
         // Update session activity
         await sessionManager.updateActivity(payload.sessionId);
         
       } catch (sessionError) {
-        throw new AuthenticationError('Session validation failed', {
-          requestId,
-          ipAddress,
-          userAgent,
-          sessionId: payload.sessionId,
-          timestamp: new Date()
-        });
+        throw new AuthenticationError('Session validation failed');
       }
     }
 
@@ -248,9 +201,8 @@ export async function authMiddleware(
         throw new AuthorizationError('Insufficient permissions for resource', {
           userId: payload.userId,
           resource: request.nextUrl.pathname,
-          requiredPermissions: resourcePermissions,
-          userPermissions: payload.permissions || [],
-          timestamp: new Date()
+          requiredPermission: resourcePermissions.join(', '),
+          userPermissions: payload.permissions || []
         });
       }
     }
@@ -266,9 +218,7 @@ export async function authMiddleware(
       if (!hasEducationalInterest) {
         throw new AuthorizationError('Educational interest required for student data access', {
           userId: payload.userId,
-          resource: request.nextUrl.pathname,
-          educationalInterest: payload.educationalInterest,
-          timestamp: new Date()
+          resource: request.nextUrl.pathname
         });
       }
     }
@@ -466,4 +416,4 @@ function generateRequestId(): string {
 /**
  * Export types for use in other modules
  */
-export type { AuthenticationContext, JWTPayload, MiddlewareConfig };
+export type { JWTPayload, MiddlewareConfig };

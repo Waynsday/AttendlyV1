@@ -207,7 +207,7 @@ export async function withRetry<T>(
       if (isPostgrestError(error) && 
           [DATABASE_ERROR_CODES.UNIQUE_VIOLATION, 
            DATABASE_ERROR_CODES.CHECK_VIOLATION,
-           DATABASE_ERROR_CODES.INSUFFICIENT_PRIVILEGES].includes(error.code)) {
+           DATABASE_ERROR_CODES.INSUFFICIENT_PRIVILEGES].includes(error.code as any)) {
         throw error
       }
 

@@ -275,7 +275,7 @@ class RedisSessionStorage implements SessionStorage {
  */
 class SessionManager {
   private config: SessionConfig;
-  private storage: SessionStorage;
+  private storage!: SessionStorage;
   private fallbackStorage?: MemorySessionStorage;
 
   constructor(config: SessionConfig = {}) {
@@ -356,10 +356,7 @@ class SessionManager {
         });
       } else {
         throw new AuthenticationError('Maximum concurrent sessions exceeded', {
-          userId,
-          maxSessions: this.config.maxConcurrentSessions,
-          currentSessions: activeSessions.length,
-          timestamp: new Date()
+          userId
         });
       }
     }
@@ -958,11 +955,3 @@ class SessionManager {
 
 // Export singleton instance
 export const sessionManager = new SessionManager();
-
-// Export types
-export type { 
-  SessionConfig, 
-  SessionData, 
-  LoginAttempt, 
-  SessionSecurity 
-};

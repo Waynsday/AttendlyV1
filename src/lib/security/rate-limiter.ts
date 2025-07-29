@@ -247,7 +247,7 @@ class RedisStorage implements RateLimitStorage {
  */
 class RateLimiter {
   private config: RateLimitConfig;
-  private storage: RateLimitStorage;
+  private storage!: RateLimitStorage;
   private fallbackStorage?: MemoryStorage;
 
   constructor(config: RateLimitConfig = {}) {
@@ -364,10 +364,8 @@ class RateLimiter {
 
     } catch (error) {
       if (error instanceof RateLimitError) {
-        // Add retry-after header
-        error.headers = {
-          'Retry-After': Math.ceil((error.resetTime.getTime() - Date.now()) / 1000).toString()
-        };
+        // RateLimitError contains retry info via resetTime property
+        // Headers are handled by the calling middleware
       }
       throw error;
     }
@@ -666,12 +664,4 @@ class RateLimiter {
 // Export singleton instance
 export const rateLimiter = new RateLimiter();
 
-// Export types
-export type { 
-  RateLimitConfig, 
-  RateLimitResult, 
-  RateLimitWindow,
-  RateLimitStorage,
-  EndpointRule,
-  MethodRule
-};
+// Types are exported above where they are defined

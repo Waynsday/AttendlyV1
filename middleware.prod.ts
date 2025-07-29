@@ -35,8 +35,8 @@ export async function middleware(request: NextRequest) {
   const requestId = generateRequestId();
   const ipAddress = request.headers.get('X-Forwarded-For') || 
                    request.headers.get('X-Real-IP') || 
-                   request.ip || 
                    'unknown';
+  const pathname = request.nextUrl.pathname;
 
   try {
     // 1. Add request ID for correlation
@@ -72,7 +72,6 @@ export async function middleware(request: NextRequest) {
     }
 
     // 5. Static assets and public files - no authentication required
-    const pathname = request.nextUrl.pathname;
     if (isPublicPath(pathname)) {
       return response;
     }
@@ -117,7 +116,7 @@ export async function middleware(request: NextRequest) {
       const response = NextResponse.json(errorResponse, { 
         status: 429,
         headers: {
-          'Retry-After': error.headers?.['Retry-After'] || '60',
+          'Retry-After': '60',
           'X-Request-ID': requestId
         }
       });
@@ -186,7 +185,7 @@ export async function middleware(request: NextRequest) {
       severity: ErrorSeverity.HIGH,
       ipAddress,
       correlationId: requestId,
-      details: `Middleware error: ${error.message}`,
+      details: `Middleware error: ${error instanceof Error ? error.message : String(error)}`,
       timestamp: new Date()
     });
 

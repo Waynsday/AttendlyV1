@@ -39,6 +39,8 @@ import {
  * GET /api/students - Retrieve students with security controls
  */
 export async function GET(request: NextRequest) {
+  let authContext: any = null;
+  
   try {
     // 1. Rate limiting check
     const userId = request.headers.get('X-User-ID');
@@ -47,7 +49,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Authentication and authorization
-    const authContext = await authMiddleware(request);
+    authContext = await authMiddleware(request);
     
     // 3. Educational interest validation for student data
     if (authContext.educationalInterest !== 'DIRECT' && 
@@ -121,7 +123,7 @@ export async function GET(request: NextRequest) {
       logSecurityEvent({
         type: 'STUDENT_DATA_ACCESS_DENIED',
         severity: ErrorSeverity.MEDIUM,
-        userId: userId || 'unknown',
+        userId: authContext?.userId || 'unknown',
         ipAddress: request.headers.get('X-Forwarded-For') || 'unknown',
         userAgent: request.headers.get('User-Agent') || 'unknown',
         correlationId: request.headers.get('X-Request-ID') || 'unknown',
@@ -131,7 +133,7 @@ export async function GET(request: NextRequest) {
     }
 
     const errorResponse = createSecureErrorResponse(error as Error, {
-      userId: userId || 'unknown',
+      userId: authContext?.userId || 'unknown',
       requestId: request.headers.get('X-Request-ID') || 'unknown',
       ipAddress: request.headers.get('X-Forwarded-For') || 'unknown',
       userAgent: request.headers.get('User-Agent') || 'unknown'
@@ -149,6 +151,8 @@ export async function GET(request: NextRequest) {
  * POST /api/students - Create new student with security validation
  */
 export async function POST(request: NextRequest) {
+  let authContext: any = null;
+  
   try {
     // 1. Rate limiting check (stricter for POST operations)
     const userId = request.headers.get('X-User-ID');
@@ -160,7 +164,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Authentication and authorization
-    const authContext = await authMiddleware(request);
+    authContext = await authMiddleware(request);
     
     // 3. Check create permissions
     if (!authContext.permissions.includes('CREATE_STUDENTS') && 
@@ -209,7 +213,7 @@ export async function POST(request: NextRequest) {
       logSecurityEvent({
         type: 'INVALID_STUDENT_DATA_SUBMISSION',
         severity: ErrorSeverity.LOW,
-        userId: userId || 'unknown',
+        userId: authContext?.userId || 'unknown',
         ipAddress: request.headers.get('X-Forwarded-For') || 'unknown',
         correlationId: request.headers.get('X-Request-ID') || 'unknown',
         details: `Validation failed: ${error.message}`,
@@ -218,7 +222,7 @@ export async function POST(request: NextRequest) {
     }
 
     const errorResponse = createSecureErrorResponse(error as Error, {
-      userId: userId || 'unknown',
+      userId: authContext?.userId || 'unknown',
       requestId: request.headers.get('X-Request-ID') || 'unknown'
     });
 
@@ -234,6 +238,8 @@ export async function POST(request: NextRequest) {
  * PUT /api/students/[id] - Update student with security validation
  */
 export async function PUT(request: NextRequest) {
+  let authContext: any = null;
+  
   try {
     // 1. Rate limiting check
     const userId = request.headers.get('X-User-ID');
@@ -245,7 +251,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // 2. Authentication and authorization
-    const authContext = await authMiddleware(request);
+    authContext = await authMiddleware(request);
     
     // 3. Check update permissions
     if (!authContext.permissions.includes('UPDATE_STUDENTS') && 
@@ -297,7 +303,7 @@ export async function PUT(request: NextRequest) {
 
   } catch (error) {
     const errorResponse = createSecureErrorResponse(error as Error, {
-      userId: userId || 'unknown',
+      userId: authContext?.userId || 'unknown',
       requestId: request.headers.get('X-Request-ID') || 'unknown'
     });
 
@@ -313,6 +319,8 @@ export async function PUT(request: NextRequest) {
  * DELETE /api/students/[id] - Delete student with strict security validation
  */
 export async function DELETE(request: NextRequest) {
+  let authContext: any = null;
+  
   try {
     // 1. Rate limiting check (very strict for deletes)
     const userId = request.headers.get('X-User-ID');
@@ -324,7 +332,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // 2. Authentication and authorization
-    const authContext = await authMiddleware(request);
+    authContext = await authMiddleware(request);
     
     // 3. Check delete permissions (only administrators should delete)
     if (authContext.role !== 'ADMINISTRATOR' && !authContext.permissions.includes('*')) {
@@ -372,7 +380,7 @@ export async function DELETE(request: NextRequest) {
 
   } catch (error) {
     const errorResponse = createSecureErrorResponse(error as Error, {
-      userId: userId || 'unknown',
+      userId: authContext?.userId || 'unknown',
       requestId: request.headers.get('X-Request-ID') || 'unknown'
     });
 
