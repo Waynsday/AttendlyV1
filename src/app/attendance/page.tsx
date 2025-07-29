@@ -465,19 +465,19 @@ export default function AttendancePage() {
           </div>
 
           {/* Attendance Table */}
-          <div className="bg-white border rounded-lg shadow-sm">
+          <div className="bg-white border-2 border-romoland-primary rounded-lg shadow-card">
             <div className="overflow-x-auto">
               <table role="table" className="w-full">
                 <thead>
-                  <tr className="border-b bg-gray-50">
+                  <tr className="border-b-2 border-romoland-primary/20 bg-romoland-light-bg">
                     {columns.map((column) => (
                       <th
                         key={column.key}
                         role="columnheader"
                         aria-sort={column.sortable ? getAriaSort(column.key) : undefined}
                         className={cn(
-                          'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider',
-                          column.sortable && 'cursor-pointer hover:bg-gray-100',
+                          'px-6 py-3 text-left text-xs font-medium text-romoland-primary uppercase tracking-wider',
+                          column.sortable && 'cursor-pointer hover:bg-romoland-primary/10',
                           column.className
                         )}
                         onClick={column.sortable ? () => handleSort(column.key) : undefined}
@@ -490,41 +490,41 @@ export default function AttendancePage() {
                     ))}
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-romoland-primary/10">
                   {filteredStudents.map((student, index) => (
                     <tr
                       key={student.id}
                       className={cn(
-                        'hover:bg-gray-50 cursor-pointer transition-colors',
-                        index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
+                        'hover:bg-romoland-primary/5 cursor-pointer transition-colors',
+                        index % 2 === 0 ? 'bg-white' : 'bg-romoland-light-bg/50'
                       )}
                       onClick={() => handleStudentClick(student)}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-medium text-gray-900">{student.name}</div>
-                        <div className="text-sm text-gray-500">ID: {student.studentId}</div>
+                        <div className="font-medium text-romoland-primary">{student.name}</div>
+                        <div className="text-sm text-romoland-text">ID: {student.studentId}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-romoland-primary">
                         {student.grade}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-romoland-primary">
                         {student.teacher}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-romoland-primary">
                           {student.attendanceRate.toFixed(1)}%
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-romoland-text">
                           {student.present}/{student.enrolled} days
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-romoland-primary">
                         {student.absences}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <TierBadge tier={student.tier} />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 max-w-xs truncate">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-romoland-text max-w-xs truncate">
                         {student.lastIntervention || 'None'}
                       </td>
                     </tr>

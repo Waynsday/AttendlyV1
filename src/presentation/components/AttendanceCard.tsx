@@ -250,19 +250,17 @@ const AttendanceCardComponent = ({
   return (
     <Card
       className={cn(
-        // Base styling
+        // Base styling with Romoland theme
         'cursor-pointer transition-all duration-200',
         'animate-fade-in',
+        'bg-white border-2 border-romoland-primary shadow-card',
         
         // Hover effects
-        isHovered && !prefersReducedMotion && 'shadow-lg transform scale-105',
+        isHovered && !prefersReducedMotion && 'shadow-lg transform scale-105 border-romoland-accent',
         prefersReducedMotion && 'motion-reduce:transform-none',
         
-        // Risk level styling
-        riskStyle.border,
-        
         // High contrast mode
-        prefersHighContrast && 'high-contrast',
+        prefersHighContrast && 'high-contrast border-4',
         
         // Layout variants
         isMobile ? 'mobile-layout' : 'desktop-layout',
@@ -317,7 +315,7 @@ const AttendanceCardComponent = ({
             <div className="text-2xl font-bold text-romoland-primary">
               {safeValue(gradeData.totalStudents)}
             </div>
-            <div className="text-xs text-muted-foreground">Total Students</div>
+            <div className="text-xs text-romoland-text">Total Students</div>
           </div>
           
           <div data-testid="attendance-rate-metric">
@@ -326,14 +324,14 @@ const AttendanceCardComponent = ({
                 ? `${gradeData.attendanceRate.toFixed(1)}%` 
                 : 'Data unavailable'}
             </div>
-            <div className="text-xs text-muted-foreground">Attendance Rate</div>
+            <div className="text-xs text-romoland-text">Attendance Rate</div>
           </div>
           
           <div data-testid="chronic-absentees-metric">
             <div className="text-2xl font-bold text-romoland-primary">
               {safeValue(gradeData.chronicAbsentees)}
             </div>
-            <div className="text-xs text-muted-foreground">Chronic Absentees</div>
+            <div className="text-xs text-romoland-text">Chronic Absentees</div>
           </div>
         </div>
 
@@ -341,40 +339,40 @@ const AttendanceCardComponent = ({
         <div 
           className={cn(
             "flex items-center justify-center space-x-2",
-            gradeData.trend === 'declining' && "text-red-600",
-            gradeData.trend === 'down' && "text-red-600"
+            gradeData.trend === 'declining' && "text-tier-3",
+            gradeData.trend === 'down' && "text-tier-3"
           )} 
           data-testid="trend-indicator"
         >
           {gradeData.trend === 'stable' && (
             <>
-              <div data-testid="trend-stable" className="w-3 h-3 bg-gray-400 rounded-full"></div>
-              <span className="text-sm text-gray-600">Stable</span>
+              <div data-testid="trend-stable" className="w-3 h-3 bg-romoland-secondary rounded-full"></div>
+              <span className="text-sm text-romoland-text">Stable</span>
             </>
           )}
           {gradeData.trend === 'declining' && (
             <>
-              <div data-testid="trend-down" className="w-0 h-0 border-l-2 border-r-2 border-b-3 border-transparent border-b-red-600"></div>
+              <div data-testid="trend-down" className="w-0 h-0 border-l-2 border-r-2 border-b-3 border-transparent border-b-tier-3"></div>
               <span className="text-sm">Declining</span>
             </>
           )}
           {gradeData.trend === 'up' && (
             <>
-              <div data-testid="trend-up" className="w-0 h-0 border-l-2 border-r-2 border-t-3 border-transparent border-t-green-600"></div>
-              <span className="text-sm text-green-600">Improving</span>
+              <div data-testid="trend-up" className="w-0 h-0 border-l-2 border-r-2 border-t-3 border-transparent border-t-tier-1"></div>
+              <span className="text-sm text-tier-1">Improving</span>
             </>
           )}
           {gradeData.trend === 'down' && (
             <>
-              <div data-testid="trend-down" className="w-0 h-0 border-l-2 border-r-2 border-b-3 border-transparent border-b-red-600"></div>
-              <span className="text-sm">Declining</span>
+              <div data-testid="trend-down" className="w-0 h-0 border-l-2 border-r-2 border-b-3 border-transparent border-b-tier-3"></div>
+              <span className="text-sm text-tier-3">Declining</span>
             </>
           )}
         </div>
 
         {/* Tier Distribution */}
         <div className="space-y-3">
-          <h4 className="text-sm font-medium text-muted-foreground text-center">
+          <h4 className="text-sm font-medium text-romoland-text text-center">
             Tier Distribution
           </h4>
           
@@ -410,16 +408,16 @@ const AttendanceCardComponent = ({
           {/* Tier Numbers */}
           <div className="grid grid-cols-3 gap-2 text-center text-sm">
             <div data-testid="tier1-count">
-              <div className="font-semibold">{safeValue(gradeData.tier1)}</div>
-              <div className="text-xs text-muted-foreground">Tier 1</div>
+              <div className="font-semibold text-romoland-primary">{safeValue(gradeData.tier1)}</div>
+              <div className="text-xs text-romoland-text">Tier 1</div>
             </div>
             <div data-testid="tier2-count">
-              <div className="font-semibold">{safeValue(gradeData.tier2)}</div>
-              <div className="text-xs text-muted-foreground">Tier 2</div>
+              <div className="font-semibold text-romoland-primary">{safeValue(gradeData.tier2)}</div>
+              <div className="text-xs text-romoland-text">Tier 2</div>
             </div>
             <div data-testid="tier3-count">
-              <div className="font-semibold">{safeValue(gradeData.tier3)}</div>
-              <div className="text-xs text-muted-foreground">Tier 3</div>
+              <div className="font-semibold text-romoland-primary">{safeValue(gradeData.tier3)}</div>
+              <div className="text-xs text-romoland-text">Tier 3</div>
             </div>
           </div>
 
@@ -442,8 +440,8 @@ const AttendanceCardComponent = ({
 
         {/* Desktop-only detailed metrics */}
         {!isMobile && (
-          <div data-testid="detailed-metrics" className="pt-2 border-t">
-            <div className="text-xs text-muted-foreground text-center">
+          <div data-testid="detailed-metrics" className="pt-2 border-t border-romoland-primary/20">
+            <div className="text-xs text-romoland-text text-center">
               Last updated: {formatDate(gradeData.lastUpdated)}
             </div>
           </div>
