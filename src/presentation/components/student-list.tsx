@@ -4,6 +4,8 @@
  * Follows TDD green phase - implementing minimal functionality to pass failing tests
  */
 
+'use client';
+
 import * as React from 'react';
 import { FixedSizeList as List } from 'react-window';
 import { Search, Filter, Download, MoreHorizontal, ChevronUp, ChevronDown } from 'lucide-react';

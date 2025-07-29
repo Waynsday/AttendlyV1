@@ -123,10 +123,10 @@ export default function DashboardPage() {
     <DashboardLayout user={mockUser}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-romoland-primary">
             AP Attendance Recovery Dashboard
           </h1>
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-romoland-text">
             Romoland School District
           </div>
         </div>

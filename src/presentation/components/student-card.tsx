@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * @fileoverview StudentCard component for displaying individual student details
  * Modal dialog with comprehensive student profile, attendance metrics, and intervention history

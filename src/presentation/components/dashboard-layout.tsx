@@ -53,22 +53,14 @@ export function DashboardLayout({
 
   const activePath = currentPath || pathname;
 
-  // Navigation items based on user role
+  // Navigation items - simplified to only show Dashboard and Attendance
   const getNavigationItems = () => {
-    const baseItems = [
+    const navigationItems = [
       { name: 'Dashboard', href: '/dashboard', icon: Home },
-      { name: 'Students', href: '/dashboard/students', icon: Users },
-      { name: 'Attendance', href: '/dashboard/attendance', icon: ClipboardList },
-      { name: 'Interventions', href: '/dashboard/interventions', icon: AlertTriangle },
+      { name: 'Attendance', href: '/attendance', icon: ClipboardList },
     ];
 
-    const adminItems = [
-      { name: 'Reports', href: '/dashboard/reports', icon: FileText },
-      { name: 'Settings', href: '/dashboard/settings', icon: Settings },
-      { name: 'Users', href: '/dashboard/users', icon: UserCog },
-    ];
-
-    return user.role === 'admin' ? [...baseItems, ...adminItems] : baseItems;
+    return navigationItems;
   };
 
   const navigationItems = getNavigationItems();
@@ -87,12 +79,12 @@ export function DashboardLayout({
   };
 
   return (
-    <div data-testid="dashboard-layout" className="min-h-screen bg-background">
+    <div data-testid="dashboard-layout" className="min-h-screen bg-white">
       {/* Header */}
       <header 
         role="banner" 
         aria-label="Site header"
-        className="bg-white border-b border-border shadow-sm"
+        className="bg-romoland-primary border-b border-romoland-primary shadow-sm"
       >
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -101,7 +93,7 @@ export function DashboardLayout({
               <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden"
+                className="md:hidden text-white hover:bg-white/10"
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                 aria-label="Toggle navigation menu"
               >
@@ -110,7 +102,7 @@ export function DashboardLayout({
 
               {/* School name */}
               <div className="ml-4 md:ml-0">
-                <h1 className="text-lg font-semibold text-foreground">
+                <h1 className="text-lg font-semibold text-white">
                   {user.school}
                 </h1>
               </div>
@@ -121,20 +113,20 @@ export function DashboardLayout({
               <div className="relative">
                 <Button
                   variant="ghost"
-                  className="flex items-center space-x-2"
+                  className="flex items-center space-x-2 text-white hover:bg-white/10"
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   aria-label="User menu"
                 >
                   <div 
                     data-testid="user-avatar"
-                    className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium"
+                    className="w-8 h-8 bg-white text-romoland-primary rounded-full flex items-center justify-center text-sm font-medium"
                     title={`${user.name} avatar`}
                   >
                     {getUserInitials(user.name)}
                   </div>
                   <div className="hidden md:block text-left">
-                    <div className="text-sm font-medium">{user.name}</div>
-                    <div className="text-xs text-muted-foreground">{user.email}</div>
+                    <div className="text-sm font-medium text-white">{user.name}</div>
+                    <div className="text-xs text-white/70">{user.email}</div>
                   </div>
                 </Button>
 
@@ -177,7 +169,7 @@ export function DashboardLayout({
           role="navigation"
           aria-label="Main navigation"
           className={cn(
-            'bg-white border-r border-border w-64 min-h-[calc(100vh-4rem)] fixed md:static transition-transform duration-300 ease-in-out z-40',
+            'bg-romoland-primary border-r border-romoland-primary w-64 min-h-[calc(100vh-4rem)] fixed md:static transition-transform duration-300 ease-in-out z-40',
             isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
           )}
         >
@@ -194,8 +186,8 @@ export function DashboardLayout({
                       className={cn(
                         'flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
                         isActive
-                          ? 'bg-primary text-primary-foreground'
-                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                          ? 'bg-white text-romoland-primary'
+                          : 'text-white/70 hover:bg-white/10 hover:text-white'
                       )}
                       aria-current={isActive ? 'page' : undefined}
                     >
@@ -222,7 +214,7 @@ export function DashboardLayout({
           role="main"
           id="main-content"
           aria-label="Dashboard content"
-          className="flex-1 min-w-0"
+          className="flex-1 min-w-0 bg-white"
           data-testid="dashboard-content"
         >
           <div className="p-6">

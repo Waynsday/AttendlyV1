@@ -4,40 +4,48 @@
 
 @layer base {
   :root {
+    /* Updated Romoland School District colors */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --foreground: 0 0% 39%; /* #636363 - Romoland text color */
+    --card: 0 0% 97.3%; /* #f8f8f8 - Light background */
+    --card-foreground: 0 0% 39%; /* #636363 - Romoland text color */
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --popover-foreground: 0 0% 39%;
+    --primary: 214 100% 16.3%; /* #002953 - Romoland primary blue */
+    --primary-foreground: 0 0% 100%; /* White text on primary */
+    --secondary: 214 100% 96.1%; /* Light blue secondary */
+    --secondary-foreground: 214 100% 16.3%; /* Primary blue text on secondary */
+    --muted: 0 0% 97.3%; /* #f8f8f8 - Light background */
+    --muted-foreground: 0 0% 39%; /* #636363 - Romoland text color */
     --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent-foreground: 214 100% 16.3%; /* Primary blue text on accent */
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 214 100% 16.3%; /* Primary blue ring */
     --radius: 0.5rem;
     --font-geist-sans: system-ui, -apple-system, sans-serif;
     --font-geist-mono: 'Courier New', monospace;
+    
+    /* Romoland-specific CSS variables */
+    --romoland-primary: 214 100% 16.3%; /* #002953 */
+    --romoland-text: 0 0% 39%; /* #636363 */
+    --romoland-light-bg: 0 0% 97.3%; /* #f8f8f8 */
+    --romoland-white: 0 0% 100%; /* #ffffff */
   }
 
   @media (prefers-color-scheme: dark) {
     :root {
+      /* Dark mode with Romoland colors adapted */
       --background: 222.2 84% 4.9%;
       --foreground: 210 40% 98%;
       --card: 222.2 84% 4.9%;
       --card-foreground: 210 40% 98%;
       --popover: 222.2 84% 4.9%;
       --popover-foreground: 210 40% 98%;
-      --primary: 210 40% 98%;
-      --primary-foreground: 222.2 47.4% 11.2%;
+      --primary: 214 100% 70%; /* Lighter version of Romoland primary for dark mode */
+      --primary-foreground: 222.2 84% 4.9%; /* Dark background on primary */
       --secondary: 217.2 32.6% 17.5%;
       --secondary-foreground: 210 40% 98%;
       --muted: 217.2 32.6% 17.5%;
@@ -48,7 +56,13 @@
       --destructive-foreground: 210 40% 98%;
       --border: 217.2 32.6% 17.5%;
       --input: 217.2 32.6% 17.5%;
-      --ring: 212.7 26.8% 83.9%;
+      --ring: 214 100% 70%; /* Lighter Romoland primary for ring */
+      
+      /* Romoland-specific dark mode variables */
+      --romoland-primary: 214 100% 70%; /* Lighter #002953 for dark mode */
+      --romoland-text: 210 40% 98%; /* Light text for dark mode */
+      --romoland-light-bg: 217.2 32.6% 17.5%; /* Dark card background */
+      --romoland-white: 222.2 84% 4.9%; /* Dark background instead of white */
     }
   }
 }

@@ -9,41 +9,23 @@ interface DevToolsProviderProps {
 /**
  * Development Tools Provider
  * 
- * A comprehensive provider that completely prevents Next.js devtools conflicts
- * while maintaining React DevTools functionality and clean development environment
+ * RSC-compatible provider that maintains clean development environment
+ * without interfering with Next.js 15.4.4 internal bundling
  */
 export function DevToolsProvider({ children }: DevToolsProviderProps) {
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      // Prevent Next.js from loading devtools chunks
-      const originalDefineProperty = Object.defineProperty;
-      Object.defineProperty = function<T>(obj: T, prop: PropertyKey, descriptor: PropertyDescriptor): T {
-        // Block any attempts to load Next.js devtools modules
-        if (typeof prop === 'string' && prop.includes('next-devtools')) {
-          return obj;
-        }
-        return originalDefineProperty.call(this, obj, prop, descriptor) as T;
-      };
-      
-      // Block devtools chunk requests at the network level
-      if (typeof window !== 'undefined' && window.fetch) {
-        const originalFetch = window.fetch;
-        window.fetch = function(input, init) {
-          const url = typeof input === 'string' ? input : (input as Request).url;
-          if (url && url.includes('next-devtools')) {
-            // Return empty response for devtools chunks
-            return Promise.resolve(new Response('', { status: 204 }));
-          }
-          return originalFetch.call(this, input, init);
-        };
-      }
-      
-      // Suppress devtools-related errors in console
+      // Only suppress console noise - don't patch core APIs that break RSC
       const originalConsoleError = console.error;
       console.error = function(...args) {
         const message = args.join(' ');
-        if (message.includes('next-devtools') || message.includes('_next/static/chunks/node_modules_next_dist_compiled_next-devtools')) {
-          // Silently ignore Next.js devtools errors
+        // Filter out non-critical development warnings that clutter console
+        if (
+          message.includes('Warning: Extra attributes from the server:') ||
+          message.includes('Warning: Prop `') ||
+          message.includes('next-dev-') // Only filter dev-specific warnings
+        ) {
+          // Silently ignore non-critical development warnings
           return;
         }
         return originalConsoleError.apply(this, args);
