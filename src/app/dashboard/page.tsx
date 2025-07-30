@@ -1,123 +1,66 @@
 'use client';
 
+import React, { useCallback } from 'react';
 import { DashboardLayout } from '@/presentation/components/dashboard-layout';
 import { AttendanceCard } from '@/presentation/components/AttendanceCard';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/presentation/components/ui/select';
+import { useDashboardData } from '@/presentation/hooks/useDashboardData';
+import { Button } from '@/presentation/components/ui/button';
+import { RefreshCw, AlertCircle } from 'lucide-react';
 
 export default function DashboardPage() {
+  // Use the new dashboard data hook
+  const {
+    schools,
+    selectedSchoolId,
+    attendanceData,
+    isLoading,
+    isLoadingAttendance,
+    error,
+    lastUpdated,
+    setSelectedSchoolId,
+    refreshData,
+    clearError
+  } = useDashboardData('all');
+
   // Mock user data for development
   const mockUser = {
     id: '1',
     name: 'John Doe',
     email: 'john.doe@romolandschool.edu',
     role: 'teacher',
-    school: 'Romoland Elementary'
+    school: 'Romoland School District'
   };
 
-  // Mock grade data based on AP Romoland requirements
-  const gradeData = [
-    {
-      grade: 'Kindergarten',
-      totalStudents: 180,
-      attendanceRate: 94.2,
-      chronicAbsentees: 15,
-      tier1: 150,
-      tier2: 15,
-      tier3: 15,
-      trend: 'stable' as const,
-      riskLevel: 'low' as const,
-      lastUpdated: '2025-07-29T10:30:00Z',
-      monthlyTrend: [
-        { month: 'Sep', rate: 93.5 },
-        { month: 'Oct', rate: 94.1 },
-        { month: 'Nov', rate: 94.2 }
-      ]
-    },
-    {
-      grade: 'Grade 1',
-      totalStudents: 165,
-      attendanceRate: 93.8,
-      chronicAbsentees: 12,
-      tier1: 140,
-      tier2: 13,
-      tier3: 12,
-      trend: 'up' as const,
-      riskLevel: 'low' as const,
-      lastUpdated: '2025-07-29T10:30:00Z',
-      monthlyTrend: [
-        { month: 'Sep', rate: 93.2 },
-        { month: 'Oct', rate: 93.5 },
-        { month: 'Nov', rate: 93.8 }
-      ]
-    },
-    {
-      grade: 'Grade 2',
-      totalStudents: 158,
-      attendanceRate: 95.1,
-      chronicAbsentees: 10,
-      tier1: 142,
-      tier2: 6,
-      tier3: 10,
-      trend: 'up' as const,
-      riskLevel: 'low' as const,
-      lastUpdated: '2025-07-29T10:30:00Z',
-      monthlyTrend: [
-        { month: 'Sep', rate: 94.8 },
-        { month: 'Oct', rate: 95.0 },
-        { month: 'Nov', rate: 95.1 }
-      ]
-    },
-    {
-      grade: 'Grade 3',
-      totalStudents: 172,
-      attendanceRate: 92.9,
-      chronicAbsentees: 14,
-      tier1: 147,
-      tier2: 11,
-      tier3: 14,
-      trend: 'stable' as const,
-      riskLevel: 'medium' as const,
-      lastUpdated: '2025-07-29T10:30:00Z',
-      monthlyTrend: [
-        { month: 'Sep', rate: 92.8 },
-        { month: 'Oct', rate: 92.9 },
-        { month: 'Nov', rate: 92.9 }
-      ]
-    },
-    {
-      grade: 'Grade 4',
-      totalStudents: 168,
-      attendanceRate: 94.6,
-      chronicAbsentees: 13,
-      tier1: 148,
-      tier2: 7,
-      tier3: 13,
-      trend: 'up' as const,
-      riskLevel: 'low' as const,
-      lastUpdated: '2025-07-29T10:30:00Z',
-      monthlyTrend: [
-        { month: 'Sep', rate: 94.2 },
-        { month: 'Oct', rate: 94.4 },
-        { month: 'Nov', rate: 94.6 }
-      ]
-    },
-    {
-      grade: 'Grade 5',
-      totalStudents: 155,
-      attendanceRate: 93.3,
-      chronicAbsentees: 11,
-      tier1: 133,
-      tier2: 11,
-      tier3: 11,
-      trend: 'down' as const,
-      riskLevel: 'medium' as const,
-      lastUpdated: '2025-07-29T10:30:00Z',
-      monthlyTrend: [
-        { month: 'Sep', rate: 93.8 },
-        { month: 'Oct', rate: 93.5 },
-        { month: 'Nov', rate: 93.3 }
-      ]
-    }
-  ];
+  const handleSchoolChange = useCallback((schoolId: string) => {
+    setSelectedSchoolId(schoolId);
+    clearError(); // Clear any previous errors when changing schools
+  }, [setSelectedSchoolId, clearError]);
+
+  const handleRefresh = useCallback(async () => {
+    await refreshData();
+  }, [refreshData]);
+
+  const selectedSchoolName = schools.find(school => school.id === selectedSchoolId)?.name || 'All Schools';
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <DashboardLayout user={mockUser}>
+        <div className="space-y-6">
+          <div className="flex items-center justify-center min-h-96">
+            <div className="text-center">
+              <div className="animate-pulse space-y-4">
+                <div className="h-8 bg-gray-200 rounded w-64 mx-auto"></div>
+                <div className="h-4 bg-gray-200 rounded w-48 mx-auto"></div>
+              </div>
+              <p className="mt-4 text-muted-foreground">Loading dashboard...</p>
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout user={mockUser}>
@@ -130,16 +73,102 @@ export default function DashboardPage() {
             Romoland School District
           </div>
         </div>
-        
-        {/* Grade Level Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {gradeData.map((grade) => (
-            <AttendanceCard
-              key={grade.grade}
-              gradeData={grade}
-            />
-          ))}
+
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-4">
+            <div className="flex items-center">
+              <AlertCircle className="h-5 w-5 text-red-400 mr-2" />
+              <div className="text-sm text-red-700">
+                <strong>Error loading data:</strong> {error}
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={clearError}
+                className="ml-auto"
+              >
+                Dismiss
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* School Filter */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <label htmlFor="school-select" className="text-sm font-medium text-foreground">
+              View Data For:
+            </label>
+            <Select value={selectedSchoolId} onValueChange={handleSchoolChange}>
+              <SelectTrigger className="w-64" aria-label="Select school">
+                <SelectValue placeholder="Select school..." />
+              </SelectTrigger>
+              <SelectContent>
+                {schools.map((school) => (
+                  <SelectItem key={school.id} value={school.id}>
+                    {school.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center space-x-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRefresh}
+              disabled={isLoadingAttendance}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingAttendance ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <div className="text-sm text-muted-foreground">
+              Showing data for: {selectedSchoolName}
+              {lastUpdated && (
+                <div className="text-xs text-gray-500">
+                  Last updated: {new Date(lastUpdated).toLocaleTimeString()}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
+        
+        {/* Attendance Level Cards */}
+        {isLoadingAttendance ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-gray-100 rounded-lg p-6 animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-8 bg-gray-200 rounded w-1/2 mb-4"></div>
+                <div className="space-y-2">
+                  <div className="h-3 bg-gray-200 rounded"></div>
+                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {attendanceData.map((attendance) => (
+              <AttendanceCard
+                key={`${attendance.school || 'all'}-${attendance.grade}`}
+                gradeData={attendance}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* No Data State */}
+        {!isLoadingAttendance && attendanceData.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No attendance data available for the selected school.</p>
+            <Button variant="outline" onClick={handleRefresh} className="mt-4">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Refreshing
+            </Button>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

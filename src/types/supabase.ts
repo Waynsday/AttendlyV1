@@ -12,37 +12,191 @@
 export interface Database {
   public: {
     Tables: {
-      students: {
+      districts: {
         Row: {
           id: string
-          student_id: string
-          first_name: string
-          last_name: string
-          grade_level: number
-          email: string
+          district_code: string
+          district_name: string
+          state: string
+          county: string | null
+          superintendent_name: string | null
+          phone: string | null
+          aeries_api_base_url: string | null
           is_active: boolean
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
-          student_id: string
-          first_name: string
-          last_name: string
-          grade_level: number
-          email: string
+          district_code: string
+          district_name: string
+          state?: string
+          county?: string | null
+          superintendent_name?: string | null
+          phone?: string | null
+          aeries_api_base_url?: string | null
           is_active?: boolean
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
-          student_id?: string
+          district_code?: string
+          district_name?: string
+          state?: string
+          county?: string | null
+          superintendent_name?: string | null
+          phone?: string | null
+          aeries_api_base_url?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      schools: {
+        Row: {
+          id: string
+          district_id: string
+          school_code: string
+          school_name: string
+          school_type: string
+          address: string | null
+          phone: string | null
+          principal_name: string | null
+          grade_levels_served: number[]
+          enrollment_capacity: number | null
+          current_enrollment: number
+          periods_per_day: number
+          instructional_minutes_per_day: number
+          aeries_school_code: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          district_id: string
+          school_code: string
+          school_name: string
+          school_type: string
+          address?: string | null
+          phone?: string | null
+          principal_name?: string | null
+          grade_levels_served: number[]
+          enrollment_capacity?: number | null
+          current_enrollment?: number
+          periods_per_day?: number
+          instructional_minutes_per_day?: number
+          aeries_school_code?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          district_id?: string
+          school_code?: string
+          school_name?: string
+          school_type?: string
+          address?: string | null
+          phone?: string | null
+          principal_name?: string | null
+          grade_levels_served?: number[]
+          enrollment_capacity?: number | null
+          current_enrollment?: number
+          periods_per_day?: number
+          instructional_minutes_per_day?: number
+          aeries_school_code?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      students: {
+        Row: {
+          id: string
+          district_id: string
+          school_id: string
+          district_student_id: string
+          aeries_student_id: string | null
+          first_name: string
+          last_name: string
+          date_of_birth: string | null
+          grade_level: number
+          gender: string | null
+          language_preference: string
+          iep_status: boolean
+          section_504_status: boolean
+          elpac_level: string | null
+          foster_status: boolean
+          primary_phone: string | null
+          email: string | null
+          address_line1: string | null
+          city: string | null
+          state: string
+          zip_code: string | null
+          current_homeroom_teacher: string | null
+          enrollment_date: string | null
+          is_active: boolean
+          aeries_last_sync: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          district_id: string
+          school_id: string
+          district_student_id: string
+          aeries_student_id?: string | null
+          first_name: string
+          last_name: string
+          date_of_birth?: string | null
+          grade_level: number
+          gender?: string | null
+          language_preference?: string
+          iep_status?: boolean
+          section_504_status?: boolean
+          elpac_level?: string | null
+          foster_status?: boolean
+          primary_phone?: string | null
+          email?: string | null
+          address_line1?: string | null
+          city?: string | null
+          state?: string
+          zip_code?: string | null
+          current_homeroom_teacher?: string | null
+          enrollment_date?: string | null
+          is_active?: boolean
+          aeries_last_sync?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          district_id?: string
+          school_id?: string
+          district_student_id?: string
+          aeries_student_id?: string | null
           first_name?: string
           last_name?: string
+          date_of_birth?: string | null
           grade_level?: number
-          email?: string
+          gender?: string | null
+          language_preference?: string
+          iep_status?: boolean
+          section_504_status?: boolean
+          elpac_level?: string | null
+          foster_status?: boolean
+          primary_phone?: string | null
+          email?: string | null
+          address_line1?: string | null
+          city?: string | null
+          state?: string
+          zip_code?: string | null
+          current_homeroom_teacher?: string | null
+          enrollment_date?: string | null
           is_active?: boolean
+          aeries_last_sync?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -89,48 +243,69 @@ export interface Database {
         Row: {
           id: string
           student_id: string
-          date: string
-          school_year: string
-          period_1_status: 'PRESENT' | 'ABSENT' | 'TARDY'
-          period_2_status: 'PRESENT' | 'ABSENT' | 'TARDY'
-          period_3_status: 'PRESENT' | 'ABSENT' | 'TARDY'
-          period_4_status: 'PRESENT' | 'ABSENT' | 'TARDY'
-          period_5_status: 'PRESENT' | 'ABSENT' | 'TARDY'
-          period_6_status: 'PRESENT' | 'ABSENT' | 'TARDY'
-          period_7_status: 'PRESENT' | 'ABSENT' | 'TARDY'
-          daily_attendance_percentage: number
+          school_id: string
+          attendance_date: string
+          is_present: boolean
+          is_full_day_absent: boolean
+          days_enrolled: number
+          period_1_status: 'PRESENT' | 'ABSENT' | 'TARDY' | 'EXCUSED_ABSENT' | 'UNEXCUSED_ABSENT' | 'PARTIAL_DAY' | 'SUSPENDED'
+          period_2_status: 'PRESENT' | 'ABSENT' | 'TARDY' | 'EXCUSED_ABSENT' | 'UNEXCUSED_ABSENT' | 'PARTIAL_DAY' | 'SUSPENDED'
+          period_3_status: 'PRESENT' | 'ABSENT' | 'TARDY' | 'EXCUSED_ABSENT' | 'UNEXCUSED_ABSENT' | 'PARTIAL_DAY' | 'SUSPENDED'
+          period_4_status: 'PRESENT' | 'ABSENT' | 'TARDY' | 'EXCUSED_ABSENT' | 'UNEXCUSED_ABSENT' | 'PARTIAL_DAY' | 'SUSPENDED'
+          period_5_status: 'PRESENT' | 'ABSENT' | 'TARDY' | 'EXCUSED_ABSENT' | 'UNEXCUSED_ABSENT' | 'PARTIAL_DAY' | 'SUSPENDED'
+          period_6_status: 'PRESENT' | 'ABSENT' | 'TARDY' | 'EXCUSED_ABSENT' | 'UNEXCUSED_ABSENT' | 'PARTIAL_DAY' | 'SUSPENDED'
+          period_7_status: 'PRESENT' | 'ABSENT' | 'TARDY' | 'EXCUSED_ABSENT' | 'UNEXCUSED_ABSENT' | 'PARTIAL_DAY' | 'SUSPENDED'
+          tardy_count: number
+          can_be_corrected: boolean
+          correction_deadline: string | null
+          corrected_by: string | null
+          created_by: string | null
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
           student_id: string
-          date: string
-          school_year: string
-          period_1_status: 'PRESENT' | 'ABSENT' | 'TARDY'
-          period_2_status: 'PRESENT' | 'ABSENT' | 'TARDY'
-          period_3_status: 'PRESENT' | 'ABSENT' | 'TARDY'
-          period_4_status: 'PRESENT' | 'ABSENT' | 'TARDY'
-          period_5_status: 'PRESENT' | 'ABSENT' | 'TARDY'
-          period_6_status: 'PRESENT' | 'ABSENT' | 'TARDY'
-          period_7_status: 'PRESENT' | 'ABSENT' | 'TARDY'
-          daily_attendance_percentage?: number
+          school_id: string
+          attendance_date: string
+          is_present?: boolean
+          is_full_day_absent?: boolean
+          days_enrolled?: number
+          period_1_status?: 'PRESENT' | 'ABSENT' | 'TARDY' | 'EXCUSED_ABSENT' | 'UNEXCUSED_ABSENT' | 'PARTIAL_DAY' | 'SUSPENDED'
+          period_2_status?: 'PRESENT' | 'ABSENT' | 'TARDY' | 'EXCUSED_ABSENT' | 'UNEXCUSED_ABSENT' | 'PARTIAL_DAY' | 'SUSPENDED'
+          period_3_status?: 'PRESENT' | 'ABSENT' | 'TARDY' | 'EXCUSED_ABSENT' | 'UNEXCUSED_ABSENT' | 'PARTIAL_DAY' | 'SUSPENDED'
+          period_4_status?: 'PRESENT' | 'ABSENT' | 'TARDY' | 'EXCUSED_ABSENT' | 'UNEXCUSED_ABSENT' | 'PARTIAL_DAY' | 'SUSPENDED'
+          period_5_status?: 'PRESENT' | 'ABSENT' | 'TARDY' | 'EXCUSED_ABSENT' | 'UNEXCUSED_ABSENT' | 'PARTIAL_DAY' | 'SUSPENDED'
+          period_6_status?: 'PRESENT' | 'ABSENT' | 'TARDY' | 'EXCUSED_ABSENT' | 'UNEXCUSED_ABSENT' | 'PARTIAL_DAY' | 'SUSPENDED'
+          period_7_status?: 'PRESENT' | 'ABSENT' | 'TARDY' | 'EXCUSED_ABSENT' | 'UNEXCUSED_ABSENT' | 'PARTIAL_DAY' | 'SUSPENDED'
+          tardy_count?: number
+          can_be_corrected?: boolean
+          correction_deadline?: string | null
+          corrected_by?: string | null
+          created_by?: string | null
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           student_id?: string
-          date?: string
-          school_year?: string
-          period_1_status?: 'PRESENT' | 'ABSENT' | 'TARDY'
-          period_2_status?: 'PRESENT' | 'ABSENT' | 'TARDY'
-          period_3_status?: 'PRESENT' | 'ABSENT' | 'TARDY'
-          period_4_status?: 'PRESENT' | 'ABSENT' | 'TARDY'
-          period_5_status?: 'PRESENT' | 'ABSENT' | 'TARDY'
-          period_6_status?: 'PRESENT' | 'ABSENT' | 'TARDY'
-          period_7_status?: 'PRESENT' | 'ABSENT' | 'TARDY'
-          daily_attendance_percentage?: number
+          school_id?: string
+          attendance_date?: string
+          is_present?: boolean
+          is_full_day_absent?: boolean
+          days_enrolled?: number
+          period_1_status?: 'PRESENT' | 'ABSENT' | 'TARDY' | 'EXCUSED_ABSENT' | 'UNEXCUSED_ABSENT' | 'PARTIAL_DAY' | 'SUSPENDED'
+          period_2_status?: 'PRESENT' | 'ABSENT' | 'TARDY' | 'EXCUSED_ABSENT' | 'UNEXCUSED_ABSENT' | 'PARTIAL_DAY' | 'SUSPENDED'
+          period_3_status?: 'PRESENT' | 'ABSENT' | 'TARDY' | 'EXCUSED_ABSENT' | 'UNEXCUSED_ABSENT' | 'PARTIAL_DAY' | 'SUSPENDED'
+          period_4_status?: 'PRESENT' | 'ABSENT' | 'TARDY' | 'EXCUSED_ABSENT' | 'UNEXCUSED_ABSENT' | 'PARTIAL_DAY' | 'SUSPENDED'
+          period_5_status?: 'PRESENT' | 'ABSENT' | 'TARDY' | 'EXCUSED_ABSENT' | 'UNEXCUSED_ABSENT' | 'PARTIAL_DAY' | 'SUSPENDED'
+          period_6_status?: 'PRESENT' | 'ABSENT' | 'TARDY' | 'EXCUSED_ABSENT' | 'UNEXCUSED_ABSENT' | 'PARTIAL_DAY' | 'SUSPENDED'
+          period_7_status?: 'PRESENT' | 'ABSENT' | 'TARDY' | 'EXCUSED_ABSENT' | 'UNEXCUSED_ABSENT' | 'PARTIAL_DAY' | 'SUSPENDED'
+          tardy_count?: number
+          can_be_corrected?: boolean
+          correction_deadline?: string | null
+          corrected_by?: string | null
+          created_by?: string | null
           created_at?: string
           updated_at?: string
         }

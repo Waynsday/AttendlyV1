@@ -34,7 +34,7 @@ export default function RootLayout({
       </head>
       <body 
         className={cn(
-          "min-h-screen bg-romoland-light-bg font-sans text-romoland-text antialiased",
+          "min-h-screen bg-background font-sans text-foreground antialiased",
           montserrat.variable,
           syne.variable
         )} 

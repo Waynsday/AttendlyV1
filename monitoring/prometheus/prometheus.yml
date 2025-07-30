@@ -1,0 +1,180 @@
+# Prometheus Configuration for AP_Tool_V1
+# FERPA-compliant educational technology monitoring
+# Implements comprehensive metrics collection for student data security
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: 'production'
+    project: 'ap-tool-v1'
+    institution: 'romoland-school-district'
+    ferpa_compliant: 'true'
+
+# Rules and alerts configuration
+rule_files:
+  - "/etc/prometheus/rules/*.yml"
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Application monitoring (AP Tool V1)
+  - job_name: 'ap-tool-v1'
+    static_configs:
+      - targets: ['app:3000']
+    scrape_interval: 15s
+    metrics_path: '/api/metrics'
+    scrape_timeout: 10s
+    honor_labels: true
+    params:
+      format: ['prometheus']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: app:3000
+    # Educational data protection labels
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: '.*student_data.*'
+        action: drop  # Drop any metrics that might contain student data
+      - source_labels: [__name__]
+        regex: '.*pii.*'
+        action: drop  # Drop any PII-related metrics
+
+  # Node Exporter (System metrics)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 30s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: node-exporter:9100
+
+  # cAdvisor (Container metrics)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 30s
+    metrics_path: '/metrics'
+
+  # Redis Exporter
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+
+  # Traefik Metrics
+  - job_name: 'traefik'
+    static_configs:
+      - targets: ['traefik:8080']
+    scrape_interval: 30s
+    metrics_path: '/metrics'
+
+  # Educational Domain Specific Monitoring
+  - job_name: 'aeries-sync-monitor'
+    static_configs:
+      - targets: ['app:3000']
+    scrape_interval: 60s  # Less frequent for external API monitoring
+    metrics_path: '/api/metrics/aeries'
+    params:
+      module: ['aeries_sync']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: app:3000
+    # Ensure no student data is exposed in sync metrics
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: '.*student_id.*'
+        action: drop
+      - source_labels: [__name__]
+        regex: '.*student_name.*'
+        action: drop
+
+  # Attendance Recovery Program Monitoring
+  - job_name: 'attendance-recovery'
+    static_configs:
+      - targets: ['app:3000']
+    scrape_interval: 30s
+    metrics_path: '/api/metrics/attendance'
+    params:
+      module: ['attendance_recovery']
+
+  # Security Monitoring
+  - job_name: 'security-events'
+    static_configs:
+      - targets: ['app:3000']
+    scrape_interval: 15s  # More frequent for security events
+    metrics_path: '/api/metrics/security'
+    params:
+      module: ['security_monitor']
+
+  # FERPA Compliance Monitoring
+  - job_name: 'ferpa-compliance'
+    static_configs:
+      - targets: ['app:3000']
+    scrape_interval: 60s
+    metrics_path: '/api/metrics/compliance'
+    params:
+      module: ['ferpa_monitor']
+    # Special handling for compliance metrics
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'ferpa_.*'
+        target_label: compliance_metric
+        replacement: 'true'
+
+  # Performance Monitoring
+  - job_name: 'performance'
+    static_configs:
+      - targets: ['app:3000']
+    scrape_interval: 15s
+    metrics_path: '/api/metrics/performance'
+    params:
+      module: ['performance_monitor']
+
+# Remote write configuration for long-term storage (optional)
+remote_write:
+  - url: "https://prometheus-remote-write.amazonaws.com/workspaces/ws-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/api/v1/remote_write"
+    queue_config:
+      max_samples_per_send: 1000
+      max_shards: 200
+      capacity: 2500
+    # AWS authentication would be configured via IAM roles in production
+
+# Storage configuration
+storage:
+  tsdb:
+    path: /prometheus
+    retention.time: 30d
+    retention.size: 10GB
+    # Compress old data for long-term educational record keeping
+    wal-compression: true
+
+# Feature flags for educational environment
+feature_flags:
+  - enable-feature=remote-write-receiver
+  - enable-feature=exemplar-storage

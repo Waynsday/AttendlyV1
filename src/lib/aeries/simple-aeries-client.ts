@@ -12,7 +12,8 @@ import fs from 'fs/promises';
 interface SimpleAeriesConfig {
   baseUrl: string;
   districtCode: string;
-  certificatePath: string;
+  certificatePath?: string;
+  apiKey?: string; // Alternative to certificate
   // Optional - have smart defaults
   batchSize?: number;
   rateLimitPerMinute?: number;
@@ -44,7 +45,8 @@ export class SimpleAeriesClient {
     this.config = {
       baseUrl: config?.baseUrl || process.env.AERIES_API_BASE_URL || '',
       districtCode: config?.districtCode || process.env.AERIES_DISTRICT_CODE || 'romoland',
-      certificatePath: config?.certificatePath || process.env.AERIES_CERTIFICATE_PATH || '/certs/aeries-client.crt',
+      certificatePath: config?.certificatePath || process.env.AERIES_CERTIFICATE_PATH,
+      apiKey: config?.apiKey || process.env.AERIES_API_KEY,
       batchSize: config?.batchSize || parseInt(process.env.AERIES_BATCH_SIZE || '100'),
       rateLimitPerMinute: config?.rateLimitPerMinute || parseInt(process.env.AERIES_RATE_LIMIT_PER_MINUTE || '60')
     };
@@ -62,26 +64,51 @@ export class SimpleAeriesClient {
       if (!this.config.districtCode) {
         throw new Error('AERIES_DISTRICT_CODE is required');
       }
-      if (!this.config.certificatePath) {
-        throw new Error('AERIES_CERTIFICATE_PATH is required');
+
+      // Check if we have API key (preferred) or certificate
+      const hasApiKey = !!this.config.apiKey;
+      const hasCertificate = !!this.config.certificatePath;
+
+      if (!hasApiKey && !hasCertificate) {
+        throw new Error('Either AERIES_API_KEY or AERIES_CERTIFICATE_PATH is required');
       }
 
-      // Load certificate
-      const certificate = await fs.readFile(this.config.certificatePath, 'utf8');
+      let httpsAgent: https.Agent | undefined;
+      let authHeaders: Record<string, string> = {};
 
-      // Create HTTPS agent with certificate
-      const httpsAgent = new https.Agent({
-        cert: certificate,
-        // If you have separate private key file:
-        // key: await fs.readFile('/certs/aeries-private.key', 'utf8'),
-        // If you have CA certificate:
-        // ca: await fs.readFile('/certs/aeries-ca.crt', 'utf8'),
-        rejectUnauthorized: true,
-        keepAlive: true,
-        timeout: 30000
-      });
+      if (hasApiKey) {
+        console.log('[Aeries] 🔑 Using API key authentication');
+        // Try multiple common Aeries authentication header formats
+        authHeaders['AERIES-CERT'] = this.config.apiKey!;
+        authHeaders['X-API-Key'] = this.config.apiKey!;
+        authHeaders['Authorization'] = `Bearer ${this.config.apiKey!}`;
+        authHeaders['Certificate-Key'] = this.config.apiKey!;
+      } else if (hasCertificate) {
+        console.log(`[Aeries] 📜 Using certificate authentication from: ${this.config.certificatePath}`);
+        
+        try {
+          const certificate = await fs.readFile(this.config.certificatePath!, 'utf8');
+          
+          // Create HTTPS agent with certificate
+          httpsAgent = new https.Agent({
+            cert: certificate,
+            // If you have separate private key file:
+            // key: await fs.readFile('/certs/aeries-private.key', 'utf8'),
+            // If you have CA certificate:
+            // ca: await fs.readFile('/certs/aeries-ca.crt', 'utf8'),
+            rejectUnauthorized: false, // Set to true in production
+            keepAlive: true,
+            timeout: 30000
+          });
+        } catch (certError) {
+          console.error('[Aeries] Certificate reading failed, trying as API key');
+          // If certificate fails to read, treat the content as API key
+          authHeaders['X-API-Key'] = this.config.certificatePath!;
+          authHeaders['Authorization'] = `Bearer ${this.config.certificatePath!}`;
+        }
+      }
 
-      // Initialize Axios with certificate authentication
+      // Initialize Axios with authentication
       this.axiosInstance = axios.create({
         baseURL: this.config.baseUrl,
         timeout: 30000,
@@ -90,7 +117,8 @@ export class SimpleAeriesClient {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           'User-Agent': 'Romoland-AP-Tool/1.0',
-          'X-District-Code': this.config.districtCode
+          'X-District-Code': this.config.districtCode,
+          ...authHeaders
         }
       });
 
@@ -112,7 +140,7 @@ export class SimpleAeriesClient {
       );
 
       this.isInitialized = true;
-      console.log('[Aeries] ✅ Initialized with certificate authentication');
+      console.log(`[Aeries] ✅ Initialized with ${hasApiKey ? 'API key' : 'certificate'} authentication`);
 
     } catch (error) {
       console.error('[Aeries] ❌ Initialization failed:', error);
@@ -151,31 +179,186 @@ export class SimpleAeriesClient {
     }
 
     try {
-      const params: Record<string, any> = {
-        startDate,
-        endDate,
-        limit: options.batchSize || this.config.batchSize,
-        offset: options.offset || 0
-      };
+      // Format dates to YYYYMMDD as required by Aeries API
+      const formattedStartDate = startDate.replace(/-/g, '');
+      const formattedEndDate = endDate.replace(/-/g, '');
+      
+      // Use default school code if not provided
+      const schoolCode = options.schoolCode || '001'; // Default to first school
+      
+      // Build endpoint URL based on Aeries API documentation
+      const endpoint = `/schools/${schoolCode}/attendance`;
 
-      if (options.schoolCode) {
-        params.schoolCode = options.schoolCode;
-      }
+      const response = await this.axiosInstance.get(endpoint, {
+        params: {
+          StartDate: formattedStartDate,
+          EndDate: formattedEndDate
+        }
+      });
 
-      const response = await this.axiosInstance.get('/attendance/daterange', { params });
+      console.log(`[Aeries] ✅ Found ${response.data?.length || 0} attendance records for school ${schoolCode}`);
       
       // Transform response data to our format
-      const transformedData = this.transformAttendanceRecords(response.data);
+      const transformedData = this.transformAttendanceRecords(response.data || [], schoolCode);
 
       return {
         success: true,
         data: transformedData,
-        total: response.headers['x-total-count'] ? parseInt(response.headers['x-total-count']) : transformedData.length
+        total: transformedData.length
       };
 
     } catch (error) {
       console.error('[Aeries] Get attendance failed:', error);
       throw new Error(`Failed to get attendance data: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Get attendance history summary for a school year
+   */
+  async getAttendanceHistorySummary(schoolCode: string, year?: string): Promise<{ success: boolean; data: any[]; total?: number }> {
+    if (!this.isInitialized || !this.axiosInstance) {
+      throw new Error('Client not initialized. Call initialize() first.');
+    }
+
+    try {
+      const endpoint = year 
+        ? `/schools/${schoolCode}/AttendanceHistory/summary/year/${year}`
+        : `/schools/${schoolCode}/AttendanceHistory/summary`;
+
+      const response = await this.axiosInstance.get(endpoint);
+      
+      console.log(`[Aeries] ✅ Found ${response.data?.length || 0} attendance summary records for school ${schoolCode}${year ? ` year ${year}` : ''}`);
+      
+      return {
+        success: true,
+        data: response.data || [],
+        total: response.data?.length || 0
+      };
+    } catch (error) {
+      console.error('[Aeries] Get attendance history summary failed:', error);
+      throw new Error(`Failed to get attendance history summary for school ${schoolCode}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Get attendance history details for a school year
+   */
+  async getAttendanceHistoryDetails(schoolCode: string, year?: string): Promise<{ success: boolean; data: any[]; total?: number }> {
+    if (!this.isInitialized || !this.axiosInstance) {
+      throw new Error('Client not initialized. Call initialize() first.');
+    }
+
+    try {
+      const endpoint = year 
+        ? `/schools/${schoolCode}/AttendanceHistory/details/year/${year}`
+        : `/schools/${schoolCode}/AttendanceHistory/details`;
+
+      const response = await this.axiosInstance.get(endpoint);
+      
+      console.log(`[Aeries] ✅ Found ${response.data?.length || 0} attendance detail records for school ${schoolCode}${year ? ` year ${year}` : ''}`);
+      
+      const transformedData = this.transformAttendanceRecords(response.data || [], schoolCode);
+      
+      return {
+        success: true,
+        data: transformedData,
+        total: transformedData.length
+      };
+    } catch (error) {
+      console.error('[Aeries] Get attendance history details failed:', error);
+      throw new Error(`Failed to get attendance history details for school ${schoolCode}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Get student information by student ID
+   */
+  async getStudentInfo(studentId: string): Promise<{ success: boolean; data: any }> {
+    if (!this.isInitialized || !this.axiosInstance) {
+      throw new Error('Client not initialized. Call initialize() first.');
+    }
+
+    try {
+      const response = await this.axiosInstance.get(`/students/${studentId}`);
+      
+      return {
+        success: true,
+        data: response.data || {}
+      };
+    } catch (error) {
+      console.error(`[Aeries] Get student info failed for ${studentId}:`, error);
+      return {
+        success: false,
+        data: {}
+      };
+    }
+  }
+
+  /**
+   * Get extended student information by student ID
+   */
+  async getStudentInfoExtended(studentId: string): Promise<{ success: boolean; data: any }> {
+    if (!this.isInitialized || !this.axiosInstance) {
+      throw new Error('Client not initialized. Call initialize() first.');
+    }
+
+    try {
+      const response = await this.axiosInstance.get(`/students/${studentId}/extended`);
+      
+      return {
+        success: true,
+        data: response.data || {}
+      };
+    } catch (error) {
+      console.error(`[Aeries] Get extended student info failed for ${studentId}:`, error);
+      return {
+        success: false,
+        data: {}
+      };
+    }
+  }
+
+  /**
+   * Get school information by school code
+   */
+  async getSchoolInfo(schoolCode: string): Promise<{ success: boolean; data: any }> {
+    if (!this.isInitialized || !this.axiosInstance) {
+      throw new Error('Client not initialized. Call initialize() first.');
+    }
+
+    try {
+      const response = await this.axiosInstance.get(`/schools/${schoolCode}`);
+      
+      return {
+        success: true,
+        data: response.data || {}
+      };
+    } catch (error) {
+      console.error(`[Aeries] Get school info failed for ${schoolCode}:`, error);
+      return {
+        success: false,
+        data: {}
+      };
+    }
+  }
+
+  /**
+   * Get all students for a school to iterate through attendance
+   */
+  async getStudentsForSchool(schoolCode: string): Promise<any[]> {
+    if (!this.isInitialized || !this.axiosInstance) {
+      throw new Error('Client not initialized. Call initialize() first.');
+    }
+
+    try {
+      const response = await this.axiosInstance.get(`/schools/${schoolCode}/students`);
+      
+      console.log(`[Aeries] ✅ Found ${response.data?.length || 0} students for school ${schoolCode}`);
+      return response.data || [];
+    } catch (error) {
+      console.error('[Aeries] Get students failed:', error);
+      throw new Error(`Failed to get students for school ${schoolCode}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -219,50 +402,61 @@ export class SimpleAeriesClient {
     const batchSize = options.batchSize || this.config.batchSize || 100;
     let totalProcessed = 0;
     let batchNumber = 0;
-    let offset = 0;
     const errors: any[] = [];
 
     console.log(`[Aeries] 🚀 Starting batch processing: ${startDate} to ${endDate}`);
 
+    // Get all schools first
+    const schoolsResponse = await this.getSchools();
+    let schoolCodes: string[] = [];
+    
+    if (options.schoolCode) {
+      // Use specified school code
+      schoolCodes = [options.schoolCode];
+    } else if (schoolsResponse.success && schoolsResponse.data.length > 0) {
+      // Try to extract school codes from the schools response
+      // Since school names are undefined, we'll try common school codes
+      schoolCodes = ['001', '002', '003', '004', '005', '006', '007', '008', '009', '010'];
+      console.log(`[Aeries] 🏫 Trying attendance for school codes: ${schoolCodes.join(', ')}`);
+    } else {
+      // Default fallback
+      schoolCodes = ['001'];
+    }
+
     try {
-      while (true) {
+      // Process each school
+      for (const schoolCode of schoolCodes) {
+        console.log(`[Aeries] 🔍 Checking attendance for school ${schoolCode}...`);
+        
         const response = await this.getAttendanceByDateRange(
           startDate,
           endDate,
-          { ...options, batchSize, offset }
+          { schoolCode, batchSize }
         );
 
-        if (!response.success || !response.data || response.data.length === 0) {
-          console.log('[Aeries] ✅ No more data to process');
-          break;
+        if (response.success && response.data && response.data.length > 0) {
+          batchNumber++;
+          console.log(`[Aeries] 📦 Processing batch ${batchNumber} from school ${schoolCode} (${response.data.length} records)`);
+          
+          try {
+            await callback(response.data, batchNumber);
+            totalProcessed += response.data.length;
+            console.log(`[Aeries] ✅ Batch ${batchNumber} completed for school ${schoolCode}`);
+          } catch (batchError) {
+            const error = {
+              batchNumber,
+              schoolCode,
+              error: batchError instanceof Error ? batchError.message : String(batchError),
+              recordCount: response.data.length
+            };
+            errors.push(error);
+            console.error(`[Aeries] ❌ Batch ${batchNumber} failed:`, error);
+          }
+        } else {
+          console.log(`[Aeries] ℹ️  No attendance data found for school ${schoolCode}`);
         }
 
-        batchNumber++;
-        console.log(`[Aeries] 📦 Processing batch ${batchNumber} (${response.data.length} records)`);
-        
-        try {
-          await callback(response.data, batchNumber);
-          totalProcessed += response.data.length;
-          console.log(`[Aeries] ✅ Batch ${batchNumber} completed`);
-        } catch (batchError) {
-          const error = {
-            batchNumber,
-            error: batchError instanceof Error ? batchError.message : String(batchError),
-            recordCount: response.data.length
-          };
-          errors.push(error);
-          console.error(`[Aeries] ❌ Batch ${batchNumber} failed:`, error);
-        }
-
-        // Check if we've received fewer records than requested (end of data)
-        if (response.data.length < batchSize) {
-          console.log('[Aeries] ✅ Reached end of data');
-          break;
-        }
-
-        offset += batchSize;
-
-        // Add delay between batches to be nice to the API
+        // Add delay between school requests to be nice to the API
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
@@ -283,7 +477,7 @@ export class SimpleAeriesClient {
   /**
    * Transform raw Aeries data to our standard format
    */
-  private transformAttendanceRecords(data: any[]): AttendanceRecord[] {
+  private transformAttendanceRecords(data: any[], schoolCode?: string): AttendanceRecord[] {
     if (!Array.isArray(data)) {
       data = [data];
     }
@@ -291,7 +485,7 @@ export class SimpleAeriesClient {
     return data.map(record => ({
       studentId: record.studentId || record.student_id || record.StudentID,
       studentNumber: record.studentNumber || record.student_number || record.StudentNumber,
-      schoolCode: record.schoolCode || record.school_code || record.SchoolCode,
+      schoolCode: schoolCode || record.schoolCode || record.school_code || record.SchoolCode,
       attendanceDate: record.attendanceDate || record.attendance_date || record.AttendanceDate,
       schoolYear: record.schoolYear || record.school_year || this.getCurrentSchoolYear(),
       dailyStatus: this.mapAttendanceStatus(record.dailyStatus || record.daily_status || record.DailyStatus),

@@ -10,6 +10,7 @@ import * as React from 'react';
 import { DashboardLayout } from '../../presentation/components/dashboard-layout';
 import { StudentDetailSidebar } from '../../presentation/components/StudentDetailSidebar';
 import { Button } from '../../presentation/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../presentation/components/ui/select';
 import { cn } from '../../presentation/utils/cn';
 import { ChevronUp, ChevronDown, ChevronsUpDown, Search, Filter } from 'lucide-react';
 
@@ -316,7 +317,7 @@ const mockUser = {
   name: 'Test User',
   email: 'test@romoland.k12.ca.us',
   role: 'teacher',
-  school: 'AP Romoland School'
+  school: 'Romoland School District'
 };
 
 export default function AttendancePage() {
@@ -327,6 +328,16 @@ export default function AttendancePage() {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [filterTier, setFilterTier] = React.useState<string>('all');
   const [filterGrade, setFilterGrade] = React.useState<string>('all');
+  const [selectedSchool, setSelectedSchool] = React.useState<string>('all');
+
+  // Schools in the district
+  const schools = [
+    { id: 'all', name: 'All Schools (District-wide)' },
+    { id: 'romoland-elementary', name: 'Romoland Elementary' },
+    { id: 'heritage-elementary', name: 'Heritage Elementary' },
+    { id: 'romoland-middle', name: 'Romoland Middle School' },
+    { id: 'east-valley-high', name: 'East Valley High School' },
+  ];
 
   // Handle student selection
   const handleStudentClick = (student: StudentRow) => {
@@ -384,14 +395,17 @@ export default function AttendancePage() {
     }
   };
 
-  // Filter students based on tier and grade
+  // Filter students based on tier, grade, and school
   const filteredStudents = React.useMemo(() => {
     return students.filter(student => {
       const tierMatch = filterTier === 'all' || student.tier.toLowerCase() === filterTier.toLowerCase();
       const gradeMatch = filterGrade === 'all' || student.grade === filterGrade;
-      return tierMatch && gradeMatch;
+      // For now, since we don't have school data in the CSV, we'll show all students for any school selection
+      // In a real implementation, this would filter by student.school === selectedSchool
+      const schoolMatch = selectedSchool === 'all' || true; // Show all students for any school selection
+      return tierMatch && gradeMatch && schoolMatch;
     });
-  }, [students, filterTier, filterGrade]);
+  }, [students, filterTier, filterGrade, selectedSchool]);
 
   // Get sort icon for column header
   const getSortIcon = (column: keyof StudentRow) => {
@@ -436,6 +450,19 @@ export default function AttendancePage() {
           {/* Filter Controls */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
+              <Select value={selectedSchool} onValueChange={setSelectedSchool}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Select school..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {schools.map((school) => (
+                    <SelectItem key={school.id} value={school.id}>
+                      {school.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
               <select
                 value={filterGrade}
                 onChange={(e) => setFilterGrade(e.target.value)}
@@ -465,11 +492,11 @@ export default function AttendancePage() {
           </div>
 
           {/* Attendance Table */}
-          <div className="bg-white border-2 border-primary rounded-lg shadow-card">
+          <div className="bg-white border-2 border-primary rounded-lg shadow-lg">
             <div className="overflow-x-auto">
               <table role="table" className="w-full">
                 <thead>
-                  <tr className="border-b-2 border-primary/20 bg-romoland-light-bg">
+                  <tr className="border-b-2 border-primary/20 bg-muted/50">
                     {columns.map((column) => (
                       <th
                         key={column.key}
@@ -496,7 +523,7 @@ export default function AttendancePage() {
                       key={student.id}
                       className={cn(
                         'hover:bg-primary/5 cursor-pointer transition-colors',
-                        index % 2 === 0 ? 'bg-white' : 'bg-romoland-light-bg/50'
+                        index % 2 === 0 ? 'bg-white' : 'bg-muted/30'
                       )}
                       onClick={() => handleStudentClick(student)}
                     >
@@ -543,6 +570,7 @@ export default function AttendancePage() {
                 onClick={() => {
                   setFilterTier('all');
                   setFilterGrade('all');
+                  setSelectedSchool('all');
                 }}
                 className="mt-4"
               >
