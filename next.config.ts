@@ -10,8 +10,6 @@ import type { NextConfig } from "next";
  * - Ensures FERPA compliance through secure build configuration
  */
 const nextConfig: NextConfig = {
-  // Custom build directory to avoid permission issues
-  distDir: '.next-build',
   
   // External packages for server components - updated for Next.js 15.4.4
   serverExternalPackages: [
