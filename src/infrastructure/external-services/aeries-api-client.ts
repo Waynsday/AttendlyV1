@@ -349,6 +349,7 @@ export class AeriesApiClient {
 
   /**
    * Process attendance data in batches for the configured date range
+   * Enhanced with date range processing for Aug 15, 2024 - Jun 12, 2025
    */
   async processAttendanceBatches(
     callback: (batch: any[], batchNumber: number) => Promise<void>,
@@ -357,73 +358,158 @@ export class AeriesApiClient {
       endDate?: string;
       schoolCode?: string;
       batchSize?: number;
+      resumeFromBatch?: number;
+      dateChunkSizeDays?: number;
     }
   ): Promise<{ totalProcessed: number; totalBatches: number; errors: any[] }> {
-    const startDate = options?.startDate || this.config.attendanceStartDate;
-    const endDate = options?.endDate || this.config.attendanceEndDate;
-    const batchSize = options?.batchSize || this.config.batchSize;
+    const startDate = options?.startDate || '2024-08-15';
+    const endDate = options?.endDate || '2025-06-12';
+    const batchSize = options?.batchSize || 500;
+    const dateChunkSizeDays = options?.dateChunkSizeDays || 30;
     
     let totalProcessed = 0;
-    let batchNumber = 0;
-    let offset = 0;
+    let totalBatches = 0;
     const errors: any[] = [];
+    let currentBatch = options?.resumeFromBatch || 0;
 
     logSecurityEvent({
       type: 'AERIES_BATCH_PROCESSING_STARTED',
       severity: ErrorSeverity.LOW,
       userId: 'system',
       correlationId: 'batch-process',
-      details: `Starting batch processing: ${startDate} to ${endDate}, batch size: ${batchSize}`,
+      details: `Enhanced batch processing: ${startDate} to ${endDate}, batch size: ${batchSize}, date chunks: ${dateChunkSizeDays} days`,
       timestamp: new Date()
     });
 
     try {
-      while (true) {
-        const response = await this.getAttendanceByDateRange(
-          startDate,
-          endDate,
-          options?.schoolCode,
-          { batchSize, offset }
-        );
+      // Break the full date range into smaller chunks for better processing
+      const dateChunks = this.createDateChunks(startDate, endDate, dateChunkSizeDays);
+      
+      for (const chunk of dateChunks) {
+        logSecurityEvent({
+          type: 'AERIES_DATE_CHUNK_PROCESSING',
+          severity: ErrorSeverity.LOW,
+          userId: 'system',
+          correlationId: 'batch-process',
+          details: `Processing date chunk: ${chunk.start} to ${chunk.end}`,
+          timestamp: new Date()
+        });
 
-        if (!response.success || !response.data || response.data.length === 0) {
-          break;
+        let offset = 0;
+        let chunkBatchNumber = 0;
+
+        while (true) {
+          // Skip batches if resuming from a specific batch
+          if (currentBatch > 0 && totalBatches < currentBatch) {
+            totalBatches++;
+            offset += batchSize;
+            continue;
+          }
+
+          try {
+            const response = await this.getAttendanceByDateRange(
+              chunk.start,
+              chunk.end,
+              options?.schoolCode,
+              { batchSize, offset }
+            );
+
+            if (!response.success || !response.data || response.data.length === 0) {
+              break;
+            }
+
+            chunkBatchNumber++;
+            totalBatches++;
+            
+            // Add enhanced batch metadata
+            const enhancedBatch = response.data.map((record: any) => ({
+              ...record,
+              _batchMetadata: {
+                batchNumber: totalBatches,
+                chunkStart: chunk.start,
+                chunkEnd: chunk.end,
+                processedAt: new Date().toISOString(),
+                schoolCode: options?.schoolCode
+              }
+            }));
+
+            try {
+              await callback(enhancedBatch, totalBatches);
+              totalProcessed += response.data.length;
+
+              this.logApiEvent('BATCH_PROCESSED', 'LOW', {
+                batchNumber: totalBatches,
+                chunkBatch: chunkBatchNumber,
+                recordCount: response.data.length,
+                dateRange: `${chunk.start} to ${chunk.end}`
+              });
+
+            } catch (batchError) {
+              const error = {
+                batchNumber: totalBatches,
+                chunkBatch: chunkBatchNumber,
+                dateRange: `${chunk.start} to ${chunk.end}`,
+                error: batchError instanceof Error ? batchError.message : String(batchError),
+                recordCount: response.data.length,
+                timestamp: new Date().toISOString()
+              };
+
+              errors.push(error);
+
+              this.logApiEvent('BATCH_ERROR', 'MEDIUM', {
+                batchNumber: totalBatches,
+                chunkBatch: chunkBatchNumber,
+                recordCount: response.data.length,
+                dateRange: `${chunk.start} to ${chunk.end}`,
+                errorMessage: error.error
+              });
+
+              // Decide whether to continue or abort based on error type
+              if (this.isCriticalError(batchError)) {
+                throw batchError;
+              }
+            }
+
+            // Check if we've received fewer records than requested (end of chunk data)
+            if (response.data.length < batchSize) {
+              break;
+            }
+
+            offset += batchSize;
+
+            // Enhanced rate limiting with exponential backoff on errors
+            const delayMs = errors.length > 0 ? 
+              Math.min(5000, 1000 * Math.pow(2, Math.min(errors.length, 3))) : 
+              1000;
+            await this.delay(delayMs);
+
+          } catch (chunkError) {
+            const error = {
+              batchNumber: totalBatches + 1,
+              chunkBatch: chunkBatchNumber + 1,
+              dateRange: `${chunk.start} to ${chunk.end}`,
+              error: chunkError instanceof Error ? chunkError.message : String(chunkError),
+              recordCount: 0,
+              timestamp: new Date().toISOString()
+            };
+
+            errors.push(error);
+
+            logSecurityEvent({
+              type: 'AERIES_CHUNK_ERROR',
+              severity: ErrorSeverity.MEDIUM,
+              userId: 'system',
+              correlationId: 'batch-process',
+              details: `Date chunk processing failed: ${chunk.start} to ${chunk.end}, error: ${error.error}`,
+              timestamp: new Date()
+            });
+
+            // Skip to next chunk if this chunk fails repeatedly
+            if (this.isCriticalError(chunkError)) {
+              break;
+            }
+          }
         }
-
-        batchNumber++;
-        
-        try {
-          await callback(response.data, batchNumber);
-          totalProcessed += response.data.length;
-
-          this.logApiEvent('BATCH_PROCESSED', 'LOW', {
-            batchNumber,
-            recordCount: response.data.length
-          });
-
-        } catch (batchError) {
-          errors.push({
-            batchNumber,
-            error: batchError instanceof Error ? batchError.message : String(batchError),
-            recordCount: response.data.length
-          });
-
-          this.logApiEvent('BATCH_ERROR', 'MEDIUM', {
-            batchNumber,
-            recordCount: response.data.length,
-            errorMessage: batchError instanceof Error ? batchError.message : String(batchError)
-          });
-        }
-
-        // Check if we've received fewer records than requested (end of data)
-        if (response.data.length < batchSize) {
-          break;
-        }
-
-        offset += batchSize;
-
-        // Add delay between batches to respect rate limits
-        await this.delay(1000);
       }
 
       logSecurityEvent({
@@ -431,13 +517,13 @@ export class AeriesApiClient {
         severity: ErrorSeverity.LOW,
         userId: 'system',
         correlationId: 'batch-process',
-        details: `Batch processing completed: ${totalProcessed} records processed in ${batchNumber} batches`,
+        details: `Enhanced batch processing completed: ${totalProcessed} records processed in ${totalBatches} batches across ${dateChunks.length} date chunks`,
         timestamp: new Date()
       });
 
       return {
         totalProcessed,
-        totalBatches: batchNumber,
+        totalBatches,
         errors
       };
 
@@ -447,12 +533,67 @@ export class AeriesApiClient {
         severity: ErrorSeverity.HIGH,
         userId: 'system',
         correlationId: 'batch-process',
-        details: `Batch processing failed: ${error instanceof Error ? error.message : String(error)}`,
+        details: `Enhanced batch processing failed: ${error instanceof Error ? error.message : String(error)}`,
         timestamp: new Date()
       });
 
       throw error;
     }
+  }
+
+  /**
+   * Create date chunks for processing large date ranges
+   */
+  private createDateChunks(startDate: string, endDate: string, chunkSizeDays: number): Array<{start: string, end: string}> {
+    const chunks: Array<{start: string, end: string}> = [];
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    let currentStart = new Date(start);
+    
+    while (currentStart < end) {
+      const currentEnd = new Date(currentStart);
+      currentEnd.setDate(currentEnd.getDate() + chunkSizeDays - 1);
+      
+      // Don't exceed the overall end date
+      if (currentEnd > end) {
+        currentEnd.setTime(end.getTime());
+      }
+      
+      chunks.push({
+        start: currentStart.toISOString().split('T')[0],
+        end: currentEnd.toISOString().split('T')[0]
+      });
+      
+      // Move to next chunk
+      currentStart = new Date(currentEnd);
+      currentStart.setDate(currentStart.getDate() + 1);
+    }
+    
+    return chunks;
+  }
+
+  /**
+   * Determine if an error is critical enough to stop processing
+   */
+  private isCriticalError(error: any): boolean {
+    if (!error) return false;
+    
+    const errorMessage = error.message ? error.message.toLowerCase() : String(error).toLowerCase();
+    
+    // Critical errors that should stop processing
+    const criticalPatterns = [
+      'authentication failed',
+      'unauthorized',
+      'forbidden',
+      'certificate',
+      'ssl',
+      'connection refused',
+      'network unreachable',
+      'dns'
+    ];
+    
+    return criticalPatterns.some(pattern => errorMessage.includes(pattern));
   }
 
   // =====================================================
@@ -482,7 +623,7 @@ export class AeriesApiClient {
       };
 
     } catch (error) {
-      if (options.retryOnFailure && axios.isRetryableError && axios.isRetryableError(error)) {
+      if (options.retryOnFailure && this.isRetryableError(error)) {
         // Implement retry logic here
         await this.delay(1000);
         return this.request({ ...options, retryOnFailure: false });
@@ -508,9 +649,18 @@ export class AeriesApiClient {
   }
 
   private calculateResponseTime(response: AxiosResponse): number {
-    const requestStartTime = response.config.metadata?.startTime;
-    if (!requestStartTime) return 0;
-    return Date.now() - requestStartTime;
+    // For now, return 0 since we don't have request timing implemented
+    // TODO: Implement proper request timing
+    return 0;
+  }
+
+  private isRetryableError(error: any): boolean {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      // Retry on 5xx server errors and certain 4xx errors
+      return status ? (status >= 500 || status === 408 || status === 429) : true;
+    }
+    return false;
   }
 
   private logApiEvent(

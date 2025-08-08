@@ -1,0 +1,324 @@
+# Security and FERPA Compliance Alert Rules for AP Tool V1
+# Educational technology security monitoring with student data protection
+
+groups:
+  - name: ferpa_compliance
+    interval: 30s
+    rules:
+      # FERPA Violation Detection
+      - alert: FERPAViolationDetected
+        expr: increase(ferpa_violation_total[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          category: compliance
+          educational_impact: high
+          data_classification: confidential
+        annotations:
+          summary: "FERPA violation detected in AP Tool V1"
+          description: "{{ $value }} FERPA violation(s) detected in the last 5 minutes. Immediate investigation required."
+          impact: "Student data privacy may be compromised"
+          action: "Investigate logs, secure affected data, notify compliance officer"
+          compliance_requirement: "20 USC 1232g (FERPA)"
+
+      # Unauthorized Student Data Access
+      - alert: UnauthorizedStudentDataAccess
+        expr: increase(unauthorized_student_data_access_total[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          category: security
+          educational_impact: high
+          data_classification: confidential
+        annotations:
+          summary: "Unauthorized access to student data detected"
+          description: "{{ $value }} unauthorized access attempt(s) to student data in the last 5 minutes"
+          impact: "Potential student privacy violation"
+          action: "Block access, investigate source, audit data access logs"
+
+      # Student Data Exposure Risk
+      - alert: StudentDataExposureRisk
+        expr: student_data_protection != 1
+        for: 2m
+        labels:
+          severity: critical
+          category: compliance
+          educational_impact: high
+        annotations:
+          summary: "Student data protection mechanisms failing"
+          description: "Student data protection status is not healthy. Risk of data exposure."
+          impact: "High risk of FERPA compliance violation"
+          action: "Immediately enable data protection, audit recent access"
+
+  - name: authentication_security
+    interval: 15s
+    rules:
+      # Failed Login Attacks
+      - alert: HighFailedLoginRate
+        expr: rate(failed_login_attempts_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          category: security
+          attack_type: brute_force
+        annotations:
+          summary: "High rate of failed login attempts"
+          description: "{{ $value }} failed login attempts per second over the last 5 minutes"
+          impact: "Potential brute force attack on user accounts"
+          action: "Review source IPs, consider temporary IP blocking"
+
+      # Suspicious Authentication Patterns
+      - alert: SuspiciousAuthenticationPattern
+        expr: |
+          (
+            rate(failed_login_attempts_total[5m]) > 5
+            and
+            rate(successful_login_total[5m]) < 1
+          )
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+          attack_type: credential_stuffing
+        annotations:
+          summary: "Suspicious authentication pattern detected"
+          description: "High failed login rate with low success rate suggests credential attack"
+          impact: "Potential compromise of user accounts"
+          action: "Enable additional authentication monitoring, consider MFA enforcement"
+
+      # Concurrent Session Violations
+      - alert: ExcessiveConcurrentSessions
+        expr: concurrent_user_sessions > 100
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+          educational_impact: medium
+        annotations:
+          summary: "Excessive concurrent user sessions"
+          description: "{{ $value }} concurrent sessions detected, exceeding normal capacity"
+          impact: "Potential account sharing or credential compromise"
+          action: "Review session logs, enforce session limits"
+
+  - name: application_security
+    interval: 30s
+    rules:
+      # Security Alert Escalation
+      - alert: SecurityAlertEscalation
+        expr: increase(security_alert_total[10m]) > 5
+        for: 0m
+        labels:
+          severity: critical
+          category: security
+          escalation: required
+        annotations:
+          summary: "Multiple security alerts require escalation"
+          description: "{{ $value }} security alerts in the last 10 minutes"
+          impact: "Potential coordinated attack or system compromise"
+          action: "Escalate to security team, consider system lockdown"
+
+      # Unusual API Access Patterns
+      - alert: UnusualAPIAccessPattern
+        expr: |
+          (
+            rate(http_requests_total{endpoint=~"/api/(students|attendance)"}[5m]) > 100
+            and
+            hour() < 6 or hour() > 22
+          )
+        for: 3m
+        labels:
+          severity: warning
+          category: security
+          educational_impact: medium
+        annotations:
+          summary: "Unusual API access pattern during off-hours"
+          description: "High API request rate ({{ $value }}/sec) during non-school hours"
+          impact: "Potential automated data scraping or unauthorized access"
+          action: "Review API access logs, validate legitimate usage"
+
+      # Rate Limiting Violations
+      - alert: RateLimitViolations
+        expr: increase(rate_limit_violations_total[5m]) > 20
+        for: 2m
+        labels:
+          severity: warning
+          category: security
+          attack_type: dos
+        annotations:
+          summary: "High rate of rate limiting violations"
+          description: "{{ $value }} rate limit violations in the last 5 minutes"
+          impact: "Potential DoS attack or misconfigured client"
+          action: "Review source IPs, adjust rate limits if needed"
+
+  - name: data_integrity
+    interval: 60s
+    rules:
+      # Database Connection Security
+      - alert: DatabaseConnectionSecurityFailure
+        expr: database_connection_security_status != 1
+        for: 1m
+        labels:
+          severity: critical
+          category: security
+          educational_impact: high
+          data_classification: confidential
+        annotations:
+          summary: "Database connection security failure"
+          description: "Database connections are not properly secured"
+          impact: "Risk of data exposure in transit"
+          action: "Verify SSL/TLS configuration, check certificates"
+
+      # Data Encryption Status
+      - alert: DataEncryptionFailure
+        expr: data_encryption_status != 1
+        for: 0m
+        labels:
+          severity: critical
+          category: compliance
+          educational_impact: high
+        annotations:
+          summary: "Data encryption failure detected"
+          description: "Student data encryption is not functioning properly"
+          impact: "FERPA compliance violation, data at risk"
+          action: "Immediately restore encryption, audit exposed data"
+
+      # Backup Security Validation
+      - alert: BackupSecurityFailure
+        expr: backup_encryption_status != 1
+        for: 5m
+        labels:
+          severity: high
+          category: compliance
+          educational_impact: medium
+        annotations:
+          summary: "Backup encryption failure"
+          description: "Student data backups are not properly encrypted"
+          impact: "Compliance violation, backup data at risk"
+          action: "Re-encrypt backups, verify backup security"
+
+  - name: external_integrations
+    interval: 45s
+    rules:
+      # Aeries API Security
+      - alert: AeriesAPISecurityFailure
+        expr: aeries_api_security_status != 1
+        for: 2m
+        labels:
+          severity: high
+          category: security
+          integration: aeries
+          educational_impact: high
+        annotations:
+          summary: "Aeries API security failure"
+          description: "Security issues detected with Aeries API integration"
+          impact: "Risk of student data exposure via external API"
+          action: "Verify API credentials, check certificate validity"
+
+      # External API Rate Limiting
+      - alert: ExternalAPIAbuseDetection
+        expr: |
+          (
+            rate(aeries_api_requests_total[5m]) > 50
+            or
+            rate(supabase_api_requests_total[5m]) > 200
+          )
+        for: 3m
+        labels:
+          severity: warning
+          category: security
+          attack_type: api_abuse
+        annotations:
+          summary: "Potential external API abuse detected"
+          description: "Unusually high external API request rate"
+          impact: "Potential service disruption or cost increase"
+          action: "Review API usage patterns, implement additional rate limiting"
+
+  - name: compliance_monitoring
+    interval: 120s
+    rules:
+      # Educational Data Audit Trail
+      - alert: MissingAuditTrail
+        expr: audit_log_completeness_percent < 99
+        for: 5m
+        labels:
+          severity: high
+          category: compliance
+          requirement: audit_trail
+        annotations:
+          summary: "Incomplete audit trail for educational data access"
+          description: "Audit log completeness is {{ $value }}%, below required 99%"
+          impact: "Compliance violation, inability to track data access"
+          action: "Investigate missing audit logs, repair logging system"
+
+      # Data Retention Policy Compliance
+      - alert: DataRetentionPolicyViolation
+        expr: data_retention_compliance_status != 1
+        for: 10m
+        labels:
+          severity: warning
+          category: compliance
+          requirement: data_retention
+        annotations:
+          summary: "Data retention policy violation"
+          description: "Student data retention policies are not being properly enforced"
+          impact: "Potential compliance violation, unnecessary data retention"
+          action: "Review data retention rules, purge expired data"
+
+      # Access Control Validation
+      - alert: AccessControlFailure
+        expr: access_control_validation_status != 1
+        for: 3m
+        labels:
+          severity: high
+          category: security
+          educational_impact: high
+        annotations:
+          summary: "Access control validation failure"
+          description: "User access controls are not functioning properly"
+          impact: "Risk of unauthorized access to student data"
+          action: "Validate user permissions, review role-based access controls"
+
+  - name: infrastructure_security
+    interval: 60s
+    rules:
+      # SSL Certificate Expiration
+      - alert: SSLCertificateExpiring
+        expr: ssl_certificate_expiry_days < 30
+        for: 1h
+        labels:
+          severity: warning
+          category: security
+          maintenance: required
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate expires in {{ $value }} days"
+          impact: "Risk of service disruption and security warnings"
+          action: "Renew SSL certificate before expiration"
+
+      # Security Header Validation
+      - alert: SecurityHeaderFailure
+        expr: security_headers_compliance_status != 1
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+          web_security: required
+        annotations:
+          summary: "Security headers not properly configured"
+          description: "Required security headers are missing or misconfigured"
+          impact: "Increased vulnerability to web-based attacks"
+          action: "Review and configure security headers (CSP, HSTS, etc.)"
+
+      # Network Security Monitoring
+      - alert: NetworkSecurityViolation
+        expr: network_security_violations_total > 0
+        for: 1m
+        labels:
+          severity: high
+          category: security
+          network: violation
+        annotations:
+          summary: "Network security violation detected"
+          description: "{{ $value }} network security violations detected"
+          impact: "Potential network intrusion or policy violation"
+          action: "Investigate network traffic, review firewall rules"

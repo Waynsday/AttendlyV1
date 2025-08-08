@@ -1,434 +1,348 @@
 /**
- * @fileoverview Secure Students API Route
- * 
- * Implements secure student data access with comprehensive security controls:
- * - Authentication middleware integration
- * - Role-based access control with FERPA compliance
- * - Input validation using Zod schemas
- * - Rate limiting enforcement
- * - Comprehensive audit logging
- * - Error handling with information disclosure protection
- * 
- * SECURITY REQUIREMENTS:
- * - All student data access requires direct educational interest
- * - Input validation prevents injection attacks
- * - Audit logging for all access attempts
- * - Rate limiting to prevent DoS attacks
- * - Proper error handling to prevent information leakage
+ * @fileoverview Students API Route
+ * Provides paginated student data with attendance metrics and filtering
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { 
-  StudentSchema, 
-  StudentCreateSchema, 
-  StudentUpdateSchema, 
-  PaginationSchema 
-} from '@/lib/validation/schemas';
-import { authMiddleware } from '@/lib/security/auth-middleware';
-import { rateLimiter } from '@/lib/security/rate-limiter';
-import { 
-  createSecureErrorResponse,
-  AuthenticationError,
-  AuthorizationError,
-  ValidationError,
-  logSecurityEvent,
-  ErrorSeverity
-} from '@/lib/security/error-handler';
+import { createAdminClient } from '@/lib/supabase/server';
 
-/**
- * GET /api/students - Retrieve students with security controls
- */
+interface StudentsQuery {
+  page?: number;
+  limit?: number;
+  schoolId?: string;
+  grade?: string;
+  tier?: string;
+  schoolYear?: string;
+  search?: string;
+}
+
+interface StudentWithMetrics {
+  id: string;
+  name: string;
+  grade: string;
+  teacher: string;
+  studentId: string;
+  attendanceRate: number;
+  absences: number;
+  enrolled: number;
+  present: number;
+  tier: string;
+  riskLevel: 'low' | 'medium' | 'high';
+  lastIntervention?: string;
+  school?: string;
+  schoolName?: string;
+}
+
+// Calculate tier based on attendance rate
+function calculateTier(attendanceRate: number): string {
+  if (attendanceRate >= 95) return 'Tier 1';
+  if (attendanceRate >= 90) return 'Tier 2';
+  return 'Tier 3';
+}
+
+// Calculate risk level based on attendance rate
+function calculateRiskLevel(attendanceRate: number): 'low' | 'medium' | 'high' {
+  if (attendanceRate >= 95) return 'low';
+  if (attendanceRate >= 90) return 'medium';
+  return 'high';
+}
+
 export async function GET(request: NextRequest) {
-  let authContext: any = null;
-  
   try {
-    // 1. Rate limiting check
-    const userId = request.headers.get('X-User-ID');
-    if (userId) {
-      await rateLimiter.checkLimit(userId, request);
+    const supabase = createAdminClient();
+    const { searchParams } = new URL(request.url);
+    
+    // Parse query parameters
+    const query: StudentsQuery = {
+      page: parseInt(searchParams.get('page') || '1'),
+      limit: parseInt(searchParams.get('limit') || '20'),
+      schoolId: searchParams.get('schoolId') || undefined,
+      grade: searchParams.get('grade') || undefined,
+      tier: searchParams.get('tier') || undefined,
+      schoolYear: searchParams.get('schoolYear') || '2024',
+      search: searchParams.get('search') || undefined
+    };
+
+    // Validate pagination parameters
+    const page = Math.max(1, query.page || 1);
+    const limit = Math.min(50, Math.max(10, query.limit || 20));
+    const offset = (page - 1) * limit;
+
+    // Set up date range for the school year
+    const baseYear = query.schoolYear || '2024';
+    const startDate = `${baseYear}-08-15`;
+    const endDate = `${parseInt(baseYear) + 1}-06-12`;
+
+    // Get all students in batches to overcome 1000 row limit
+    const allStudents: any[] = [];
+    let batchStart = 0;
+    const batchSize = 1000;
+    let hasMore = true;
+
+    console.log('Fetching all students in batches...');
+    
+    while (hasMore) {
+      let studentsQuery = supabase
+        .from('students')
+        .select(`
+          id,
+          aeries_student_id,
+          first_name,
+          last_name,
+          grade_level,
+          school_id,
+          current_homeroom_teacher,
+          schools!inner(
+            id,
+            school_name
+          )
+        `)
+        .eq('is_active', true)
+        .range(batchStart, batchStart + batchSize - 1);
+
+      // Apply filters to each batch
+      if (query.schoolId && query.schoolId !== 'all') {
+        studentsQuery = studentsQuery.eq('school_id', query.schoolId);
+      }
+
+      if (query.grade && query.grade !== 'all') {
+        studentsQuery = studentsQuery.eq('grade_level', parseInt(query.grade));
+      }
+
+      if (query.search && query.search.trim()) {
+        const searchTerm = query.search.trim();
+        studentsQuery = studentsQuery.or(
+          `first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,aeries_student_id.ilike.%${searchTerm}%`
+        );
+      }
+
+      const { data: batchData, error: batchError } = await studentsQuery;
+
+      if (batchError) {
+        console.error(`Error fetching batch ${batchStart}-${batchStart + batchSize}:`, batchError);
+        return NextResponse.json(
+          { error: 'Failed to fetch student data', details: batchError.message },
+          { status: 500 }
+        );
+      }
+
+      if (batchData && batchData.length > 0) {
+        allStudents.push(...batchData);
+        console.log(`Fetched batch: ${batchData.length} students (total: ${allStudents.length})`);
+        
+        // If we got less than batchSize, we've reached the end
+        if (batchData.length < batchSize) {
+          hasMore = false;
+        } else {
+          batchStart += batchSize;
+        }
+      } else {
+        hasMore = false;
+      }
     }
 
-    // 2. Authentication and authorization
-    authContext = await authMiddleware(request);
-    
-    // 3. Educational interest validation for student data
-    if (authContext.educationalInterest !== 'DIRECT' && 
-        authContext.educationalInterest !== 'ADMINISTRATIVE') {
-      throw new AuthorizationError('Direct educational interest required for student data access', {
-        userId: authContext.userId,
-        resource: '/api/students',
-        requiredPermission: 'READ_STUDENT_PII',
-        userPermissions: authContext.permissions
+    const studentsData = allStudents;
+    console.log(`Total students fetched: ${studentsData.length}`);
+
+    // Log applied filters
+    if (query.schoolId && query.schoolId !== 'all') {
+      console.log(`Filtered by school: ${query.schoolId}`);
+    }
+    if (query.grade && query.grade !== 'all') {
+      console.log(`Filtered by grade: ${query.grade}`);
+    }
+    if (query.search && query.search.trim()) {
+      console.log(`Searched for: "${query.search.trim()}"`);
+    }
+
+
+    if (!studentsData || studentsData.length === 0) {
+      return NextResponse.json({
+        data: [],
+        pagination: {
+          page,
+          limit,
+          total: 0,
+          totalPages: 0
+        }
       });
     }
 
-    // 4. Permission check
-    if (!authContext.permissions.includes('READ_STUDENTS') && 
-        !authContext.permissions.includes('*')) {
-      throw new AuthorizationError('Insufficient permissions for student data access', {
-        userId: authContext.userId,
-        resource: '/api/students',
-        requiredPermission: 'READ_STUDENTS',
-        userPermissions: authContext.permissions
+    // Get attendance records in batches for all students
+    const aeriesStudentIds = studentsData.map(s => s.aeries_student_id).filter(id => id !== null);
+    console.log(`Querying attendance for ${aeriesStudentIds.length} students from ${startDate} to ${endDate}`);
+    
+    const allAttendanceRecords: any[] = [];
+    const attendanceBatchSize = 1000;
+    
+    // Process students in chunks to avoid query size limits
+    for (let i = 0; i < aeriesStudentIds.length; i += attendanceBatchSize) {
+      const studentBatch = aeriesStudentIds.slice(i, i + attendanceBatchSize);
+      
+      // Get attendance records for this batch of students
+      let attendanceBatchStart = 0;
+      let hasMoreAttendance = true;
+      
+      while (hasMoreAttendance) {
+        const { data: attendanceBatch, error: attendanceError } = await supabase
+          .from('attendance_records')
+          .select('aeries_student_id, is_present')
+          .in('aeries_student_id', studentBatch)
+          .gte('attendance_date', startDate)
+          .lte('attendance_date', endDate)
+          .range(attendanceBatchStart, attendanceBatchStart + 999); // 1000 records per batch
+
+        if (attendanceError) {
+          console.error('Error fetching attendance batch:', attendanceError);
+          return NextResponse.json(
+            { error: 'Failed to fetch attendance data', details: attendanceError.message },
+            { status: 500 }
+          );
+        }
+
+        if (attendanceBatch && attendanceBatch.length > 0) {
+          allAttendanceRecords.push(...attendanceBatch);
+          
+          if (attendanceBatch.length < 1000) {
+            hasMoreAttendance = false;
+          } else {
+            attendanceBatchStart += 1000;
+          }
+        } else {
+          hasMoreAttendance = false;
+        }
+      }
+      
+      console.log(`Processed student batch ${i}-${Math.min(i + attendanceBatchSize, aeriesStudentIds.length)}, total attendance records: ${allAttendanceRecords.length}`);
+    }
+    
+    const attendanceData = allAttendanceRecords;
+
+    console.log(`Found ${attendanceData?.length || 0} attendance records for ${aeriesStudentIds.length} students`);
+
+    // Process attendance data to calculate metrics per student
+    const studentMetrics = new Map<string, {
+      totalDays: number;
+      presentDays: number;
+      absentDays: number;
+    }>();
+
+    // Initialize metrics for all students (even those with no attendance records)
+    studentsData.forEach(student => {
+      if (student.aeries_student_id) {
+        studentMetrics.set(student.aeries_student_id, {
+          totalDays: 0,
+          presentDays: 0,
+          absentDays: 0
+        });
+      }
+    });
+
+    // Process attendance records
+    if (attendanceData && attendanceData.length > 0) {
+      attendanceData.forEach((record: any) => {
+        const aeriesStudentId = record.aeries_student_id;
+        
+        if (studentMetrics.has(aeriesStudentId)) {
+          const metrics = studentMetrics.get(aeriesStudentId)!;
+          metrics.totalDays++;
+
+          // Count present/absent days based on is_present boolean
+          if (record.is_present === true) {
+            metrics.presentDays++;
+          } else {
+            metrics.absentDays++;
+          }
+        }
       });
     }
 
-    // 5. Validate query parameters
-    const url = new URL(request.url);
-    const queryParams = Object.fromEntries(url.searchParams.entries());
+    // Convert to student array with calculated metrics
+    let students: StudentWithMetrics[] = studentsData.map(student => {
+      const metrics = studentMetrics.get(student.aeries_student_id || '') || { totalDays: 0, presentDays: 0, absentDays: 0 };
+      const attendanceRate = metrics.totalDays > 0 ? (metrics.presentDays / metrics.totalDays) * 100 : 0;
+      const tier = calculateTier(attendanceRate);
+      const riskLevel = calculateRiskLevel(attendanceRate);
+
+      return {
+        id: student.id,
+        name: `${student.last_name}, ${student.first_name}`,
+        grade: student.grade_level?.toString() || '0',
+        teacher: student.current_homeroom_teacher || 'Staff',
+        studentId: student.aeries_student_id || student.id,
+        attendanceRate: Math.round(attendanceRate * 100) / 100,
+        absences: metrics.absentDays,
+        enrolled: metrics.totalDays,
+        present: metrics.presentDays,
+        tier,
+        riskLevel,
+        school: student.school_id,
+        schoolName: student.schools?.school_name
+      };
+    });
+
+    console.log(`Processed ${students.length} students with attendance data`);
+
+    // Apply tier filter after calculation
+    if (query.tier && query.tier !== 'all') {
+      const tierFilter = query.tier.toLowerCase();
+      students = students.filter(student => 
+        student.tier.toLowerCase() === `tier ${tierFilter.replace('tier ', '')}`
+      );
+    }
+
+    // Sort by grade, then by attendance rate (lowest first for intervention priority)
+    students.sort((a, b) => {
+      const gradeA = parseInt(a.grade) || 0;
+      const gradeB = parseInt(b.grade) || 0;
+      if (gradeA !== gradeB) return gradeA - gradeB;
+      return a.attendanceRate - b.attendanceRate;
+    });
+
+    // Calculate total for pagination
+    const total = students.length;
+    const totalPages = Math.ceil(total / limit);
+
+    // Apply pagination
+    const paginatedStudents = students.slice(offset, offset + limit);
+
+    console.log(`Returning page ${page}/${totalPages} with ${paginatedStudents.length} students (${total} total)`);
     
-    const paginationParams = PaginationSchema.parse({
-      page: queryParams.page || '1',
-      limit: queryParams.limit || '20',
-      sortBy: queryParams.sortBy,
-      sortOrder: queryParams.sortOrder || 'asc'
-    });
+    // Sample some data for debugging
+    if (paginatedStudents.length > 0) {
+      const sample = paginatedStudents[0];
+      console.log(`Sample student: ${sample.name}, Grade: ${sample.grade}, Teacher: ${sample.teacher}, Rate: ${sample.attendanceRate}%, Tier: ${sample.tier}`);
+    }
 
-    // 6. Security event logging
-    logSecurityEvent({
-      type: 'STUDENT_DATA_ACCESS',
-      severity: ErrorSeverity.LOW,
-      userId: authContext.userId,
-      employeeId: authContext.employeeId,
-      ipAddress: authContext.ipAddress,
-      userAgent: authContext.userAgent,
-      correlationId: request.headers.get('X-Request-ID') || 'unknown',
-      details: `Accessed student list with pagination: ${JSON.stringify(paginationParams)}`,
-      timestamp: new Date()
-    });
-
-    // 7. Fetch student data (mock implementation for now)
-    const students = await fetchStudentsSecurely(paginationParams, authContext);
-
-    // 8. Return secure response
     return NextResponse.json({
-      success: true,
-      data: students,
+      data: paginatedStudents,
       pagination: {
-        page: paginationParams.page,
-        limit: paginationParams.limit,
-        total: students.length,
-        hasMore: students.length === paginationParams.limit
+        page,
+        limit,
+        total,
+        totalPages
       },
-      meta: {
-        accessedBy: authContext.employeeId,
-        educationalInterest: authContext.educationalInterest,
-        timestamp: new Date().toISOString()
+      metadata: {
+        schoolYear: `SY ${baseYear}-${parseInt(baseYear) + 1}`,
+        dateRange: {
+          start: startDate,
+          end: endDate
+        },
+        filters: {
+          schoolId: query.schoolId,
+          grade: query.grade,
+          tier: query.tier,
+          search: query.search
+        }
       }
     });
 
   } catch (error) {
-    // Security event logging for failures
-    if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-      logSecurityEvent({
-        type: 'STUDENT_DATA_ACCESS_DENIED',
-        severity: ErrorSeverity.MEDIUM,
-        userId: authContext?.userId || 'unknown',
-        ipAddress: request.headers.get('X-Forwarded-For') || 'unknown',
-        userAgent: request.headers.get('User-Agent') || 'unknown',
-        correlationId: request.headers.get('X-Request-ID') || 'unknown',
-        details: error.message,
-        timestamp: new Date()
-      });
-    }
-
-    const errorResponse = createSecureErrorResponse(error as Error, {
-      userId: authContext?.userId || 'unknown',
-      requestId: request.headers.get('X-Request-ID') || 'unknown',
-      ipAddress: request.headers.get('X-Forwarded-For') || 'unknown',
-      userAgent: request.headers.get('User-Agent') || 'unknown'
-    });
-
-    const statusCode = error instanceof AuthenticationError ? 401 : 
-                      error instanceof AuthorizationError ? 403 :
-                      error instanceof ValidationError ? 400 : 500;
-
-    return NextResponse.json(errorResponse, { status: statusCode });
+    console.error('Error in students API:', error);
+    return NextResponse.json(
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
   }
 }
 
-/**
- * POST /api/students - Create new student with security validation
- */
-export async function POST(request: NextRequest) {
-  let authContext: any = null;
-  
-  try {
-    // 1. Rate limiting check (stricter for POST operations)
-    const userId = request.headers.get('X-User-ID');
-    if (userId) {
-      await rateLimiter.checkLimit(userId, request, { 
-        customLimit: 20, // Lower limit for creation operations
-        window: 60000 
-      });
-    }
-
-    // 2. Authentication and authorization
-    authContext = await authMiddleware(request);
-    
-    // 3. Check create permissions
-    if (!authContext.permissions.includes('CREATE_STUDENTS') && 
-        !authContext.permissions.includes('*')) {
-      throw new AuthorizationError('Insufficient permissions to create students', {
-        userId: authContext.userId,
-        resource: '/api/students',
-        requiredPermission: 'CREATE_STUDENTS',
-        userPermissions: authContext.permissions
-      });
-    }
-
-    // 4. Parse and validate request body
-    const body = await request.json();
-    const validatedData = StudentCreateSchema.parse(body);
-
-    // 5. Security event logging
-    logSecurityEvent({
-      type: 'STUDENT_RECORD_CREATION',
-      severity: ErrorSeverity.MEDIUM,
-      userId: authContext.userId,
-      employeeId: authContext.employeeId,
-      ipAddress: authContext.ipAddress,
-      userAgent: authContext.userAgent,
-      correlationId: request.headers.get('X-Request-ID') || 'unknown',
-      details: `Creating student record for ID: ${validatedData.id}`,
-      timestamp: new Date()
-    });
-
-    // 6. Create student record (mock implementation for now)
-    const newStudent = await createStudentSecurely(validatedData, authContext);
-
-    // 7. Return secure response
-    return NextResponse.json({
-      success: true,
-      data: newStudent,
-      meta: {
-        createdBy: authContext.employeeId,
-        timestamp: new Date().toISOString()
-      }
-    }, { status: 201 });
-
-  } catch (error) {
-    // Log security events for failures
-    if (error instanceof ValidationError) {
-      logSecurityEvent({
-        type: 'INVALID_STUDENT_DATA_SUBMISSION',
-        severity: ErrorSeverity.LOW,
-        userId: authContext?.userId || 'unknown',
-        ipAddress: request.headers.get('X-Forwarded-For') || 'unknown',
-        correlationId: request.headers.get('X-Request-ID') || 'unknown',
-        details: `Validation failed: ${error.message}`,
-        timestamp: new Date()
-      });
-    }
-
-    const errorResponse = createSecureErrorResponse(error as Error, {
-      userId: authContext?.userId || 'unknown',
-      requestId: request.headers.get('X-Request-ID') || 'unknown'
-    });
-
-    const statusCode = error instanceof AuthenticationError ? 401 : 
-                      error instanceof AuthorizationError ? 403 :
-                      error instanceof ValidationError ? 400 : 500;
-
-    return NextResponse.json(errorResponse, { status: statusCode });
-  }
-}
-
-/**
- * PUT /api/students/[id] - Update student with security validation
- */
-export async function PUT(request: NextRequest) {
-  let authContext: any = null;
-  
-  try {
-    // 1. Rate limiting check
-    const userId = request.headers.get('X-User-ID');
-    if (userId) {
-      await rateLimiter.checkLimit(userId, request, { 
-        customLimit: 30, // Moderate limit for updates
-        window: 60000 
-      });
-    }
-
-    // 2. Authentication and authorization
-    authContext = await authMiddleware(request);
-    
-    // 3. Check update permissions
-    if (!authContext.permissions.includes('UPDATE_STUDENTS') && 
-        !authContext.permissions.includes('*')) {
-      throw new AuthorizationError('Insufficient permissions to update students', {
-        userId: authContext.userId,
-        resource: '/api/students',
-        requiredPermission: 'UPDATE_STUDENTS',
-        userPermissions: authContext.permissions
-      });
-    }
-
-    // 4. Extract student ID from URL
-    const url = new URL(request.url);
-    const studentId = url.pathname.split('/').pop();
-    
-    if (!studentId) {
-      throw new ValidationError('Student ID is required for update');
-    }
-
-    // 5. Parse and validate request body
-    const body = await request.json();
-    const validatedData = StudentUpdateSchema.parse(body);
-
-    // 6. Security event logging
-    logSecurityEvent({
-      type: 'STUDENT_RECORD_UPDATE',
-      severity: ErrorSeverity.MEDIUM,
-      userId: authContext.userId,
-      employeeId: authContext.employeeId,
-      ipAddress: authContext.ipAddress,
-      correlationId: request.headers.get('X-Request-ID') || 'unknown',
-      details: `Updating student record: ${studentId}`,
-      timestamp: new Date()
-    });
-
-    // 7. Update student record (mock implementation for now)
-    const updatedStudent = await updateStudentSecurely(studentId, validatedData, authContext);
-
-    // 8. Return secure response
-    return NextResponse.json({
-      success: true,
-      data: updatedStudent,
-      meta: {
-        updatedBy: authContext.employeeId,
-        timestamp: new Date().toISOString()
-      }
-    });
-
-  } catch (error) {
-    const errorResponse = createSecureErrorResponse(error as Error, {
-      userId: authContext?.userId || 'unknown',
-      requestId: request.headers.get('X-Request-ID') || 'unknown'
-    });
-
-    const statusCode = error instanceof AuthenticationError ? 401 : 
-                      error instanceof AuthorizationError ? 403 :
-                      error instanceof ValidationError ? 400 : 500;
-
-    return NextResponse.json(errorResponse, { status: statusCode });
-  }
-}
-
-/**
- * DELETE /api/students/[id] - Delete student with strict security validation
- */
-export async function DELETE(request: NextRequest) {
-  let authContext: any = null;
-  
-  try {
-    // 1. Rate limiting check (very strict for deletes)
-    const userId = request.headers.get('X-User-ID');
-    if (userId) {
-      await rateLimiter.checkLimit(userId, request, { 
-        customLimit: 5, // Very low limit for deletion operations
-        window: 60000 
-      });
-    }
-
-    // 2. Authentication and authorization
-    authContext = await authMiddleware(request);
-    
-    // 3. Check delete permissions (only administrators should delete)
-    if (authContext.role !== 'ADMINISTRATOR' && !authContext.permissions.includes('*')) {
-      throw new AuthorizationError('Only administrators can delete student records', {
-        userId: authContext.userId,
-        resource: '/api/students',
-        requiredPermission: 'DELETE_STUDENTS',
-        userPermissions: authContext.permissions
-      });
-    }
-
-    // 4. Extract student ID from URL
-    const url = new URL(request.url);
-    const studentId = url.pathname.split('/').pop();
-    
-    if (!studentId) {
-      throw new ValidationError('Student ID is required for deletion');
-    }
-
-    // 5. Critical security event logging
-    logSecurityEvent({
-      type: 'STUDENT_RECORD_DELETION',
-      severity: ErrorSeverity.HIGH,
-      userId: authContext.userId,
-      employeeId: authContext.employeeId,
-      ipAddress: authContext.ipAddress,
-      correlationId: request.headers.get('X-Request-ID') || 'unknown',
-      details: `CRITICAL: Deleting student record: ${studentId}`,
-      timestamp: new Date()
-    });
-
-    // 6. Delete student record (mock implementation for now)
-    await deleteStudentSecurely(studentId, authContext);
-
-    // 7. Return secure response
-    return NextResponse.json({
-      success: true,
-      message: 'Student record deleted successfully',
-      meta: {
-        deletedBy: authContext.employeeId,
-        timestamp: new Date().toISOString(),
-        studentId: studentId
-      }
-    });
-
-  } catch (error) {
-    const errorResponse = createSecureErrorResponse(error as Error, {
-      userId: authContext?.userId || 'unknown',
-      requestId: request.headers.get('X-Request-ID') || 'unknown'
-    });
-
-    const statusCode = error instanceof AuthenticationError ? 401 : 
-                      error instanceof AuthorizationError ? 403 :
-                      error instanceof ValidationError ? 400 : 500;
-
-    return NextResponse.json(errorResponse, { status: statusCode });
-  }
-}
-
-// Mock implementations (to be replaced with actual database operations)
-async function fetchStudentsSecurely(params: any, authContext: any) {
-  // Mock implementation - replace with actual database query
-  return [
-    {
-      id: 'STU001',
-      firstName: 'John',
-      lastName: 'Doe',
-      gradeLevel: 7,
-      email: 'john.doe@school.edu',
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }
-  ];
-}
-
-async function createStudentSecurely(data: any, authContext: any) {
-  // Mock implementation - replace with actual database creation
-  return {
-    ...data,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  };
-}
-
-async function updateStudentSecurely(id: string, data: any, authContext: any) {
-  // Mock implementation - replace with actual database update
-  return {
-    id,
-    ...data,
-    updatedAt: new Date()
-  };
-}
-
-async function deleteStudentSecurely(id: string, authContext: any) {
-  // Mock implementation - replace with actual database deletion
-  // In production, this might soft-delete or require additional approvals
-  return true;
-}

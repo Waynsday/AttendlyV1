@@ -10,29 +10,8 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { cn } from '../utils/cn';
-import dynamic from 'next/dynamic';
-
-// Dynamically import recharts to avoid SSR issues
-const ResponsiveContainer = dynamic(
-  () => import('recharts').then((mod) => mod.ResponsiveContainer),
-  { ssr: false }
-);
-const PieChart = dynamic(
-  () => import('recharts').then((mod) => mod.PieChart),
-  { ssr: false }
-);
-const Pie = dynamic(
-  () => import('recharts').then((mod) => mod.Pie),
-  { ssr: false }
-);
-const Cell = dynamic(
-  () => import('recharts').then((mod) => mod.Cell),
-  { ssr: false }
-);
-const Tooltip = dynamic(
-  () => import('recharts').then((mod) => mod.Tooltip),
-  { ssr: false }
-);
+// Import recharts directly for better debugging
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 
 // Types based on test data structure
 interface GradeData {
@@ -52,31 +31,32 @@ interface GradeData {
 interface AttendanceCardProps {
   gradeData: GradeData;
   isLoading?: boolean;
+  viewMode?: 'grid' | 'compact';
 }
 
-// Tier colors using standard Tailwind classes
+// Attendly Brand Tier Colors
 const TIER_COLORS = {
-  1: '#16a34a', // green-600 
-  2: '#eab308', // yellow-500 
-  3: '#dc2626', // red-600 
+  1: '#10B981', // Success green - matching Attendly success color
+  2: '#F59E0B', // Warning yellow - matching Attendly warning color  
+  3: '#EF4444', // Error red - matching Attendly error color
 };
 
-// Risk level styling using direct hex values for inline styles
+// Attendly Brand Risk Level Styling
 const RISK_STYLES = {
   low: {
-    backgroundColor: '#dcfce7', // green-100
-    color: '#16a34a',     // green-600
-    borderColor: '#bbf7d0',   // green-200
+    backgroundColor: '#ECFDF5', // success-50
+    color: '#059669',           // success-600
+    borderColor: '#A7F3D0',     // success-200
   },
   medium: {
-    backgroundColor: '#fef9c3', // yellow-100
-    color: '#eab308',     // yellow-600
-    borderColor: '#fde68a',   // yellow-200
+    backgroundColor: '#FFFBEB', // warning-50
+    color: '#D97706',           // warning-600
+    borderColor: '#FDE68A',     // warning-200
   },
   high: {
-    backgroundColor: '#fee2e2', // red-100
-    color: '#dc2626',     // red-600
-    borderColor: '#fca5a5',   // red-200
+    backgroundColor: '#FEF2F2', // error-50
+    color: '#DC2626',           // error-600
+    borderColor: '#FECACA',     // error-200
   },
 };
 
@@ -86,6 +66,7 @@ const RISK_STYLES = {
 const AttendanceCardComponent = ({
   gradeData,
   isLoading = false,
+  viewMode = 'grid',
 }: AttendanceCardProps) => {
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
@@ -98,11 +79,14 @@ const AttendanceCardComponent = ({
 
   const pieData = useMemo(() => {
     if (!gradeData || gradeData.totalStudents === 0) return [];
-    return [
+    
+    const data = [
       { tier: 1, value: gradeData.tier1 || 0, name: 'Tier 1' },
       { tier: 2, value: gradeData.tier2 || 0, name: 'Tier 2' },
       { tier: 3, value: gradeData.tier3 || 0, name: 'Tier 3' },
-    ];
+    ].filter(item => item.value > 0); // Only show tiers with students
+    
+    return data;
   }, [gradeData]);
 
   const handleClick = useCallback(() => {
@@ -158,9 +142,9 @@ const AttendanceCardComponent = ({
   return (
     <Card
       className={cn(
-        'bg-white text-card-foreground rounded-lg shadow-lg cursor-pointer transition-all duration-200',
-        'border-2 border-primary',
-        isHovered && !prefersReducedMotion && 'shadow-xl transform -translate-y-1 border-accent',
+        'bg-white text-card-foreground rounded-xl shadow-card cursor-pointer transition-all duration-200',
+        'border border-neutral-200 hover:shadow-card-hover',
+        isHovered && !prefersReducedMotion && 'shadow-brand-lg -translate-y-0.5 border-primary-300',
         isLoading && 'opacity-50 cursor-not-allowed'
       )}
       onClick={handleClick}
@@ -172,16 +156,16 @@ const AttendanceCardComponent = ({
       aria-label={`Grade ${gradeData.grade} summary`}
       aria-disabled={isLoading}
     >
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-heading text-primary truncate">
-            {gradeData.grade}
+          <CardTitle className="text-xl font-medium text-primary-900">
+            Grade {gradeData.grade}
           </CardTitle>
           <div 
-            className="px-2 py-1 rounded-full text-xs font-medium"
+            className="px-3 py-1.5 rounded-lg text-sm font-normal"
             style={{
               backgroundColor: riskStyle.backgroundColor,
-              color: riskStyle.textColor,
+              color: riskStyle.color,
               borderColor: riskStyle.borderColor,
               borderWidth: '1px',
               borderStyle: 'solid',
@@ -192,61 +176,164 @@ const AttendanceCardComponent = ({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div>
-            <div className="text-2xl font-bold text-foreground">{safeValue(gradeData.totalStudents)}</div>
-            <div className="text-xs text-muted-foreground">Students</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-foreground">{`${safeValue(gradeData.attendanceRate, 0).toFixed(1)}%`}</div>
-            <div className="text-xs text-muted-foreground">Attendance</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-foreground">{safeValue(gradeData.chronicAbsentees)}</div>
-            <div className="text-xs text-muted-foreground">Chronic</div>
-          </div>
-        </div>
-
-        <div className="flex justify-center pt-2">
-          {isMounted ? (
-            <ResponsiveContainer width="100%" height={120}>
-              <PieChart>
-                <Pie data={pieData} cx="50%" cy="50%" innerRadius={30} outerRadius={50} dataKey="value" paddingAngle={5}>
-                  {pieData.map((entry) => (
-                    <Cell key={`cell-${entry.tier}`} fill={TIER_COLORS[entry.tier as keyof typeof TIER_COLORS]} stroke={TIER_COLORS[entry.tier as keyof typeof TIER_COLORS]} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="w-full h-[120px] flex items-center justify-center bg-muted rounded">
-              <div className="text-sm text-muted-foreground">Loading chart...</div>
+      <CardContent className={viewMode === 'compact' ? 'py-4' : 'space-y-4'}>
+        {viewMode === 'compact' ? (
+          // Compact horizontal layout
+          <div className="flex items-center justify-between gap-6">
+            {/* Left side - Main metrics */}
+            <div className="flex items-center gap-6">
+              <div className="text-center">
+                <div className="text-2xl font-medium text-primary-900">{safeValue(gradeData.totalStudents)}</div>
+                <div className="text-sm text-primary-700">Students</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-medium text-primary-900">{`${safeValue(gradeData.attendanceRate, 0).toFixed(1)}%`}</div>
+                <div className="text-sm text-primary-700">Attendance</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-medium text-primary-900">{safeValue(gradeData.chronicAbsentees)}</div>
+                <div className="text-sm text-primary-700">Chronic</div>
+              </div>
             </div>
-          )}
-        </div>
 
-        <div className="grid grid-cols-3 gap-2 text-center text-sm pt-2">
-          <div>
-            <div className="font-semibold" style={{color: TIER_COLORS[1]}}>{safeValue(gradeData.tier1)}</div>
-            <div className="text-xs text-muted-foreground">Tier 1</div>
-          </div>
-          <div>
-            <div className="font-semibold" style={{color: TIER_COLORS[2]}}>{safeValue(gradeData.tier2)}</div>
-            <div className="text-xs text-muted-foreground">Tier 2</div>
-          </div>
-          <div>
-            <div className="font-semibold" style={{color: TIER_COLORS[3]}}>{safeValue(gradeData.tier3)}</div>
-            <div className="text-xs text-muted-foreground">Tier 3</div>
-          </div>
-        </div>
+            {/* Center - Chart */}
+            <div className="flex-shrink-0">
+              {isMounted && pieData.length > 0 ? (
+                <div className="w-[100px] h-[80px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie 
+                        data={pieData} 
+                        cx="50%" 
+                        cy="50%" 
+                        innerRadius={20} 
+                        outerRadius={35} 
+                        dataKey="value" 
+                        paddingAngle={2}
+                      >
+                        {pieData.map((entry) => (
+                          <Cell 
+                            key={`cell-${entry.tier}`} 
+                            fill={TIER_COLORS[entry.tier as keyof typeof TIER_COLORS]} 
+                            stroke={TIER_COLORS[entry.tier as keyof typeof TIER_COLORS]} 
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--card))', 
+                          border: '1px solid hsl(var(--border))',
+                          fontSize: '12px'
+                        }} 
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="w-[100px] h-[80px] flex items-center justify-center bg-muted rounded">
+                  <div className="text-xs text-muted-foreground">
+                    {!isMounted ? 'Loading...' : 'No data'}
+                  </div>
+                </div>
+              )}
+            </div>
 
-        <div className="pt-3 border-t border-border/50">
-          <div className="text-xs text-muted-foreground text-center">
-            Last updated: {formatDate(gradeData.lastUpdated)}
+            {/* Right side - Tier breakdown */}
+            <div className="flex items-center gap-4 text-sm">
+              <div className="text-center">
+                <div className="font-semibold" style={{color: TIER_COLORS[1]}}>{safeValue(gradeData.tier1)}</div>
+                <div className="text-xs text-muted-foreground">T1</div>
+              </div>
+              <div className="text-center">
+                <div className="font-semibold" style={{color: TIER_COLORS[2]}}>{safeValue(gradeData.tier2)}</div>
+                <div className="text-xs text-muted-foreground">T2</div>
+              </div>
+              <div className="text-center">
+                <div className="font-semibold" style={{color: TIER_COLORS[3]}}>{safeValue(gradeData.tier3)}</div>
+                <div className="text-xs text-muted-foreground">T3</div>
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          // Grid vertical layout (original)
+          <>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <div className="text-3xl font-medium text-primary-900">{safeValue(gradeData.totalStudents)}</div>
+                <div className="text-sm text-primary-700">Students</div>
+              </div>
+              <div>
+                <div className="text-3xl font-medium text-primary-900">{`${safeValue(gradeData.attendanceRate, 0).toFixed(1)}%`}</div>
+                <div className="text-sm text-primary-700">Attendance</div>
+              </div>
+              <div>
+                <div className="text-3xl font-medium text-primary-900">{safeValue(gradeData.chronicAbsentees)}</div>
+                <div className="text-sm text-primary-700">Chronic</div>
+              </div>
+            </div>
+
+            <div className="flex justify-center pt-2">
+              {isMounted && pieData.length > 0 ? (
+                <div className="w-full h-[120px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie 
+                        data={pieData} 
+                        cx="50%" 
+                        cy="50%" 
+                        innerRadius={30} 
+                        outerRadius={50} 
+                        dataKey="value" 
+                        paddingAngle={5}
+                      >
+                        {pieData.map((entry) => (
+                          <Cell 
+                            key={`cell-${entry.tier}`} 
+                            fill={TIER_COLORS[entry.tier as keyof typeof TIER_COLORS]} 
+                            stroke={TIER_COLORS[entry.tier as keyof typeof TIER_COLORS]} 
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--card))', 
+                          border: '1px solid hsl(var(--border))' 
+                        }} 
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="w-full h-[120px] flex items-center justify-center bg-muted rounded">
+                  <div className="text-sm text-muted-foreground">
+                    {!isMounted ? 'Loading chart...' : 'No chart data'}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-3 gap-4 text-center text-base pt-3">
+              <div>
+                <div className="font-medium text-lg" style={{color: TIER_COLORS[1]}}>{safeValue(gradeData.tier1)}</div>
+                <div className="text-sm text-primary-700">Tier 1</div>
+              </div>
+              <div>
+                <div className="font-medium text-lg" style={{color: TIER_COLORS[2]}}>{safeValue(gradeData.tier2)}</div>
+                <div className="text-sm text-primary-700">Tier 2</div>
+              </div>
+              <div>
+                <div className="font-medium text-lg" style={{color: TIER_COLORS[3]}}>{safeValue(gradeData.tier3)}</div>
+                <div className="text-sm text-primary-700">Tier 3</div>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-neutral-200">
+              <div className="text-sm text-primary-600 text-center">
+                Last updated: {formatDate(gradeData.lastUpdated)}
+              </div>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

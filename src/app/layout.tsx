@@ -1,25 +1,21 @@
 import type { Metadata } from "next";
-import { Montserrat, Syne } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { DevToolsProvider } from "@/components/providers/devtools-provider";
 import { cn } from "@/presentation/utils/cn";
 
-// Font configuration from design-tokens.json
-const montserrat = Montserrat({
+// Attendly Brand Typography - Inter Font System
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-montserrat",
-});
-
-const syne = Syne({
-  subsets: ["latin"],
-  variable: "--font-syne",
-  weight: "700",
+  variable: "--font-inter",
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "AttendlyV1 - School Attendance Recovery System",
-  description: "FERPA-compliant attendance tracking and recovery system for Romoland School District",
-  keywords: "attendance, school, education, FERPA, student data, compliance",
+  title: "Attendly - End Administrative Agony",
+  description: "Purpose-built for California educators who want to focus on students, not paperwork. Seamless Aeries SIS integration and automated excellence.",
+  keywords: "attendance, school, education, FERPA, student data, compliance, Aeries, California, educators",
 };
 
 export default function RootLayout({
@@ -34,9 +30,8 @@ export default function RootLayout({
       </head>
       <body 
         className={cn(
-          "min-h-screen bg-romoland-light-bg font-sans text-romoland-text antialiased",
-          montserrat.variable,
-          syne.variable
+          "min-h-screen bg-background font-sans text-foreground antialiased",
+          inter.variable
         )} 
         suppressHydrationWarning
       >

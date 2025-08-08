@@ -10,6 +10,7 @@ import type { NextConfig } from "next";
  * - Ensures FERPA compliance through secure build configuration
  */
 const nextConfig: NextConfig = {
+  
   // External packages for server components - updated for Next.js 15.4.4
   serverExternalPackages: [
     '@supabase/supabase-js',

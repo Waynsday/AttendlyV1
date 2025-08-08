@@ -1,0 +1,331 @@
+# Performance Alert Rules for AP Tool V1
+# Educational technology performance monitoring for optimal user experience
+
+groups:
+  - name: application_performance
+    interval: 30s
+    rules:
+      # Dashboard Load Time - Critical for AP Workflows
+      - alert: DashboardLoadTimeHigh
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_ms_bucket{route="/dashboard"}[5m])) by (le)) > 2000
+        for: 3m
+        labels:
+          severity: warning
+          category: performance
+          educational_impact: high
+          user_experience: degraded
+        annotations:
+          summary: "AP Dashboard loading slowly"
+          description: "95th percentile dashboard load time is {{ $value }}ms, exceeding 2 second target"
+          impact: "Assistant Principals experiencing delayed access to attendance data"
+          action: "Investigate database queries, optimize dashboard components"
+          performance_target: "< 2 seconds"
+          current_performance: "{{ $value }}ms"
+
+      # API Response Time - Essential for Real-time Operations
+      - alert: APIResponseTimeHigh
+        expr: histogram_quantile(0.90, sum(rate(http_request_duration_ms_bucket{route=~"/api/(students|attendance|interventions)"}[5m])) by (le, route)) > 500
+        for: 2m
+        labels:
+          severity: warning
+          category: performance
+          educational_impact: medium
+          api_performance: degraded
+        annotations:
+          summary: "API response time exceeding target"
+          description: "90th percentile API response time for {{ $labels.route }} is {{ $value }}ms"
+          impact: "Slower data retrieval for educational workflows"
+          action: "Review API endpoint performance, optimize database queries"
+          performance_target: "< 500ms"
+          sla_breach: "true"
+
+      # Database Query Performance - Critical for Data Access
+      - alert: DatabaseQueryPerformanceDegraded
+        expr: histogram_quantile(0.95, sum(rate(database_query_duration_ms_bucket[5m])) by (le)) > 1000
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+          database_performance: degraded
+          educational_impact: medium
+        annotations:
+          summary: "Database query performance degraded"
+          description: "95th percentile database query time is {{ $value }}ms"
+          impact: "Slower attendance data retrieval and reporting"
+          action: "Analyze slow queries, consider index optimization"
+          performance_target: "< 1000ms"
+
+      # Memory Usage - System Resource Monitoring
+      - alert: ApplicationMemoryUsageHigh
+        expr: (memory_usage_bytes / (1024 * 1024 * 1024)) > 1.5
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+          resource_type: memory
+          capacity_planning: required
+        annotations:
+          summary: "High memory usage in AP Tool application"
+          description: "Application memory usage is {{ $value }}GB, approaching limits"
+          impact: "Potential application slowdown or crashes"
+          action: "Investigate memory leaks, consider scaling resources"
+          memory_limit: "2GB"
+          current_usage: "{{ $value }}GB"
+
+      # CPU Usage - Processing Performance
+      - alert: ApplicationCPUUsageHigh
+        expr: cpu_usage_percent > 80
+        for: 10m
+        labels:
+          severity: warning
+          category: performance
+          resource_type: cpu
+          capacity_planning: required
+        annotations:
+          summary: "High CPU usage sustained"
+          description: "CPU usage is {{ $value }}% for over 10 minutes"
+          impact: "Slower response times for all educational operations"
+          action: "Investigate CPU-intensive operations, consider horizontal scaling"
+          cpu_threshold: "80%"
+
+  - name: educational_workflow_performance
+    interval: 45s
+    rules:
+      # Attendance Sync Performance - Critical for Daily Operations
+      - alert: AttendanceSyncPerformanceDegraded
+        expr: aeries_sync_duration_seconds > 300
+        for: 0m
+        labels:
+          severity: warning
+          category: performance
+          educational_workflow: attendance_sync
+          operational_impact: high
+        annotations:
+          summary: "Attendance sync taking longer than expected"
+          description: "Attendance sync with Aeries API took {{ $value }} seconds"
+          impact: "Delayed availability of current attendance data for APs"
+          action: "Investigate Aeries API performance, optimize sync process"
+          performance_target: "< 5 minutes"
+          sync_type: "daily_attendance"
+
+      # Recovery Session Scheduling Performance
+      - alert: RecoverySessionSchedulingDelay
+        expr: recovery_session_scheduling_duration_seconds > 60
+        for: 2m
+        labels:
+          severity: warning
+          category: performance
+          educational_workflow: recovery_scheduling
+          user_experience: degraded
+        annotations:
+          summary: "Recovery session scheduling experiencing delays"
+          description: "Recovery session scheduling taking {{ $value }} seconds"
+          impact: "APs waiting longer to schedule student recovery sessions"
+          action: "Optimize calendar integration, review scheduling algorithms"
+          performance_target: "< 60 seconds"
+
+      # Student Data Query Performance
+      - alert: StudentDataQuerySlow
+        expr: histogram_quantile(0.95, sum(rate(student_data_query_duration_ms_bucket[5m])) by (le)) > 2000
+        for: 3m
+        labels:
+          severity: warning
+          category: performance
+          data_access: student_records
+          educational_impact: medium
+        annotations:
+          summary: "Student data queries running slowly"
+          description: "95th percentile student data query time is {{ $value }}ms"
+          impact: "Slower access to student information for intervention decisions"
+          action: "Optimize student data queries, review database indexes"
+          performance_target: "< 2 seconds"
+
+      # Report Generation Performance
+      - alert: ReportGenerationSlow
+        expr: report_generation_duration_seconds > 180
+        for: 1m
+        labels:
+          severity: warning
+          category: performance
+          educational_workflow: reporting
+          administrative_impact: medium
+        annotations:
+          summary: "Report generation taking longer than expected"
+          description: "Report generation took {{ $value }} seconds"
+          impact: "Delayed administrative reports for decision making"
+          action: "Optimize report queries, consider background processing"
+          performance_target: "< 3 minutes"
+
+  - name: user_experience_performance
+    interval: 60s
+    rules:
+      # Page Load Performance - Overall UX
+      - alert: PageLoadPerformancePoor
+        expr: avg(http_request_duration_ms{route!~"/api/.*"}) > 3000
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+          user_experience: poor
+          frontend_performance: degraded
+        annotations:
+          summary: "Poor page load performance across the application"
+          description: "Average page load time is {{ $value }}ms across all pages"
+          impact: "Users experiencing slow application performance"
+          action: "Investigate frontend optimization, CDN performance"
+          performance_target: "< 3 seconds"
+
+      # Concurrent User Performance
+      - alert: ConcurrentUserPerformanceImpact
+        expr: |
+          (
+            active_connections > 50
+            and
+            avg(http_request_duration_ms) > 1500
+          )
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+          scalability: issue
+          concurrent_users: high_load
+        annotations:
+          summary: "Performance degradation under concurrent user load"
+          description: "{{ $labels.active_connections }} concurrent users causing {{ $value }}ms average response time"
+          impact: "Multiple APs experiencing slower system performance"
+          action: "Consider horizontal scaling, optimize for concurrent access"
+          concurrent_users: "{{ $labels.active_connections }}"
+
+      # Educational Peak Hours Performance
+      - alert: SchoolHoursPerformanceDegradation
+        expr: |
+          (
+            hour() >= 7 and hour() <= 15
+            and
+            histogram_quantile(0.90, sum(rate(http_request_duration_ms_bucket[5m])) by (le)) > 1000
+          )
+        for: 3m
+        labels:
+          severity: warning
+          category: performance
+          time_period: school_hours
+          educational_impact: high
+        annotations:
+          summary: "Performance degradation during school hours"
+          description: "90th percentile response time is {{ $value }}ms during active school hours"
+          impact: "Peak usage affecting AP Tool performance when most needed"
+          action: "Scale resources for school hours, optimize for peak usage"
+          peak_hours: "7 AM - 3 PM PST"
+
+  - name: infrastructure_performance
+    interval: 60s
+    rules:
+      # Database Connection Pool Performance
+      - alert: DatabaseConnectionPoolExhausted
+        expr: database_connections_active / database_connections_max > 0.9
+        for: 2m
+        labels:
+          severity: critical
+          category: performance
+          infrastructure: database
+          capacity_issue: connection_pool
+        annotations:
+          summary: "Database connection pool near exhaustion"
+          description: "Using {{ $value | humanizePercentage }} of available database connections"
+          impact: "Risk of connection timeouts and failed database operations"
+          action: "Increase connection pool size or optimize connection usage"
+          connection_utilization: "{{ $value | humanizePercentage }}"
+
+      # Cache Performance
+      - alert: CacheHitRateLow
+        expr: cache_hit_rate < 85
+        for: 10m
+        labels:
+          severity: warning
+          category: performance
+          infrastructure: cache
+          optimization_needed: true
+        annotations:
+          summary: "Cache hit rate below optimal threshold"
+          description: "Cache hit rate is {{ $value }}%, below 85% target"
+          impact: "Increased database load and slower response times"
+          action: "Review cache configuration, optimize cache keys and TTL"
+          hit_rate_target: "> 85%"
+          current_hit_rate: "{{ $value }}%"
+
+      # Load Balancer Performance
+      - alert: LoadBalancerLatencyHigh
+        expr: load_balancer_request_duration_seconds > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+          infrastructure: load_balancer
+          network_performance: degraded
+        annotations:
+          summary: "Load balancer adding significant latency"
+          description: "Load balancer request duration is {{ $value }}s"
+          impact: "Additional latency affecting all user requests"
+          action: "Investigate load balancer configuration and health"
+          latency_target: "< 100ms"
+
+  - name: capacity_planning
+    interval: 300s  # 5 minute intervals for capacity metrics
+    rules:
+      # Storage Capacity - Educational Data Growth
+      - alert: DatabaseStorageCapacityWarning
+        expr: (database_storage_used_bytes / database_storage_total_bytes) > 0.8
+        for: 15m
+        labels:
+          severity: warning
+          category: capacity
+          resource_type: storage
+          planning_horizon: 30_days
+        annotations:
+          summary: "Database storage capacity approaching limits"
+          description: "Database storage is {{ $value | humanizePercentage }} full"
+          impact: "Risk of storage exhaustion affecting data collection"
+          action: "Plan storage expansion, archive old educational data"
+          capacity_utilization: "{{ $value | humanizePercentage }}"
+          growth_projection: "Review student enrollment and data retention policies"
+
+      # Request Rate Growth - Usage Trends
+      - alert: RequestRateGrowthSignificant
+        expr: |
+          (
+            increase(http_requests_total[7d]) / increase(http_requests_total[7d] offset 7d) > 1.5
+          )
+        for: 30m
+        labels:
+          severity: info
+          category: capacity
+          trend: growth
+          planning_required: true
+        annotations:
+          summary: "Significant growth in request rate detected"
+          description: "Request rate has grown {{ $value | humanizePercentage }} compared to last week"
+          impact: "Increased usage may require capacity planning"
+          action: "Review usage trends, plan for scaling if growth continues"
+          growth_rate: "{{ $value | humanizePercentage }}"
+          trend_period: "7 days"
+
+      # Educational Seasonal Capacity Planning
+      - alert: SeasonalCapacityPlanningRequired
+        expr: |
+          (
+            (month() == 8 or month() == 1)  # August (start of school) or January (semester start)
+            and
+            rate(http_requests_total[1d]) > rate(http_requests_total[1d] offset 30d) * 1.3
+          )
+        for: 1h
+        labels:
+          severity: info
+          category: capacity
+          season: back_to_school
+          educational_calendar: relevant
+        annotations:
+          summary: "Seasonal usage increase requires capacity review"
+          description: "Request rate {{ $value | humanizePercentage }} higher than typical for this time period"
+          impact: "Back-to-school season may require additional capacity"
+          action: "Review seasonal capacity needs, prepare for enrollment changes"
+          seasonal_factor: "{{ $value | humanizePercentage }}"

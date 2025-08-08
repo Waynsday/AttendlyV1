@@ -1,0 +1,138 @@
+# Grafana Datasources Configuration for AP_Tool_V1
+# FERPA-compliant educational data visualization
+
+apiVersion: 1
+
+datasources:
+  # Prometheus - Metrics
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    basicAuth: false
+    withCredentials: false
+    jsonData:
+      httpMethod: POST
+      queryTimeout: 60s
+      timeInterval: "15s"
+      # Custom headers for educational compliance
+      customHeaders:
+        'X-Educational-System': 'AP-Tool-V1'
+        'X-FERPA-Compliant': 'true'
+        'X-Institution': 'Romoland-School-District'
+    secureJsonData: {}
+    editable: false
+    uid: prometheus-uid
+    version: 1
+
+  # Loki - Logs
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    basicAuth: false
+    withCredentials: false
+    jsonData:
+      maxLines: 1000
+      # Derived fields for tracing integration
+      derivedFields:
+        - datasourceUid: jaeger-uid
+          matcherRegex: "traceID=(\\w+)"
+          name: TraceID
+          url: "$${__value.raw}"
+        - datasourceUid: prometheus-uid
+          matcherRegex: "user_id=(\\w+)"
+          name: UserMetrics
+          url: "/explore?orgId=1&left=%5B%22now-1h%22,%22now%22,%22Prometheus%22,%7B%22expr%22:%22user_requests%7Buser_id%3D%5C%22$${__value.raw}%5C%22%7D%22%7D%5D"
+    secureJsonData: {}
+    editable: false
+    uid: loki-uid
+    version: 1
+
+  # CloudWatch - AWS Metrics
+  - name: CloudWatch
+    type: cloudwatch
+    access: proxy
+    jsonData:
+      authType: credentials
+      defaultRegion: us-west-2
+      customMetricsNamespaces: 'AP-Tool-V1,ECS/ContainerInsights,AWS/ApplicationELB,AWS/RDS'
+      # Educational institution specific namespaces
+      assumeRoleArn: 'arn:aws:iam::ACCOUNT_ID:role/GrafanaCloudWatchRole'
+      # Specific metrics for educational compliance
+      metricsConfig:
+        # Monitor for FERPA compliance violations
+        - namespace: 'AP-Tool-V1/Compliance'
+          metricName: 'ferpa_violations'
+          dimensions:
+            - name: 'Environment'
+              value: 'production'
+        # Student data access monitoring
+        - namespace: 'AP-Tool-V1/Security'
+          metricName: 'unauthorized_student_data_access'
+          dimensions:
+            - name: 'DataType'
+              value: 'student_records'
+    secureJsonData:
+      accessKey: '$${AWS_ACCESS_KEY_ID}'
+      secretKey: '$${AWS_SECRET_ACCESS_KEY}'
+    editable: false
+    uid: cloudwatch-uid
+    version: 1
+
+  # Educational System Performance Database (if using separate analytics DB)
+  - name: Analytics DB
+    type: postgres
+    access: proxy
+    url: analytics-db:5432
+    database: attendly_analytics
+    user: grafana_reader
+    jsonData:
+      sslmode: require
+      postgresVersion: 1500
+      timescaledb: false
+      # Educational data protection settings
+      queryTimeout: '60s'
+      maxOpenConns: 5
+      maxIdleConns: 2
+      connMaxLifetime: 14400
+    secureJsonData:
+      password: '$${ANALYTICS_DB_PASSWORD}'
+    editable: false
+    uid: analytics-db-uid
+    version: 1
+
+  # Test Data Source (for development/staging)
+  - name: TestData DB
+    type: testdata
+    access: proxy
+    jsonData:
+      # Generate test data that mimics educational metrics without real student data
+      scenarios:
+        - name: "Attendance Rates"
+          stringInput: "attendance_rate"
+        - name: "Recovery Session Completion"
+          stringInput: "recovery_sessions"
+        - name: "AP Workflow Efficiency"
+          stringInput: "ap_workflows"
+    editable: false
+    uid: testdata-uid
+    version: 1
+    # Only available in non-production environments
+    orgId: 1
+
+# Folder configuration for organized dashboards
+folders:
+  - name: "Educational Dashboards"
+    title: "Educational System Dashboards"
+    uid: "educational-dashboards"
+  - name: "System Monitoring"
+    title: "Infrastructure & System Monitoring"
+    uid: "system-monitoring"
+  - name: "Security & Compliance"
+    title: "Security & FERPA Compliance"
+    uid: "security-compliance"
+  - name: "Performance Analytics"
+    title: "Application Performance Analytics"
+    uid: "performance-analytics"

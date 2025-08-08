@@ -319,3 +319,54 @@ export interface AeriesCertificateStatus {
   renewalRequired: boolean;
   lastValidated: string;
 }
+
+// =====================================================
+// Enhanced Aeries Client Types
+// =====================================================
+
+export interface RomolandAttendanceQuery {
+  fields: string[];
+  tables: string[];
+  dateRange?: {
+    startDate: string;
+    endDate: string;
+  };
+  filters: {
+    schoolCode?: string;
+    schoolCodes?: string[];
+    gradeLevel?: string;
+    activeOnly?: boolean;
+    enrollmentStatus?: string;
+  };
+  includePeriods?: boolean;
+  periodConfiguration?: {
+    totalPeriods: number;
+    schoolType: 'ELEMENTARY' | 'MIDDLE_SCHOOL' | 'HIGH_SCHOOL';
+    blockSchedule?: boolean;
+  };
+  correctionWindow?: {
+    enabled: boolean;
+    days: number;
+  };
+  attendanceCodeMapping?: Record<string, string>;
+  limit?: number;
+  batchProcessing?: {
+    enabled: boolean;
+    batchSize: number;
+  };
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  errors: Array<{
+    field: string;
+    message: string;
+    value: any;
+  }>;
+  warnings: Array<{
+    field: string;
+    message: string;
+    value: any;
+  }>;
+  sanitizedData: any;
+}
