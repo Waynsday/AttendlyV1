@@ -2,8 +2,8 @@
 
 /**
  * @fileoverview Enhanced Attendance Page Component
- * Displays sortable student attendance table with tier badges and detailed sidebar
- * Uses real data from AP Romoland CSV files
+ * Displays paginated student attendance table with real data from Supabase
+ * Includes filtering by school, grade, tier, and school year
  */
 
 import * as React from 'react';
@@ -12,248 +12,23 @@ import { StudentDetailSidebar } from '../../presentation/components/StudentDetai
 import { Button } from '../../presentation/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../presentation/components/ui/select';
 import { cn } from '../../presentation/utils/cn';
-import { ChevronUp, ChevronDown, ChevronsUpDown, Search, Filter } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, Calendar, RefreshCw, Search } from 'lucide-react';
+import { useStudentsData } from '../../presentation/hooks/useStudentsData';
+import { useDashboardData } from '../../presentation/hooks/useDashboardData';
 
-// Enhanced student data interface with detailed information
-interface StudentRow {
-  id: string;
-  name: string;
-  grade: string;
-  teacher: string;
-  studentId: string;
-  attendanceRate: number;
-  absences: number;
-  enrolled: number;
-  present: number;
-  tier: string;
-  riskLevel: 'low' | 'medium' | 'high';
-  lastIntervention?: string;
-  
-  // Additional details for sidebar
-  attendanceHistory: Array<{
-    date: string;
-    status: 'present' | 'absent' | 'tardy';
-    percentage: number;
-  }>;
-  
-  iReadyScores: Array<{
-    subject: 'ELA' | 'Math';
-    testDate: string;
-    overallScore: number;
-    placement: string;
-    lexileLevel?: string;
-    percentile: number;
-    gain: number;
-  }>;
-  
-  interventions: Array<{
-    date: string;
-    type: 'Letter 1' | 'Letter 2' | 'SART' | 'SARB' | 'Mediation' | 'Parent Contact';
-    status: 'Completed' | 'Pending' | 'No Show';
-    notes: string;
-  }>;
-  
-  comments: Array<{
-    date: string;
-    staff: string;
-    comment: string;
-  }>;
-}
+// Import types from the hook
+import type { StudentData } from '../../presentation/hooks/useStudentsData';
 
 // Sort direction type
 type SortDirection = 'asc' | 'desc' | null;
 
 // Column configuration
 interface Column {
-  key: keyof StudentRow;
+  key: keyof StudentData;
   label: string;
   sortable: boolean;
   className?: string;
 }
-
-// Real student data based on AP Romoland CSV
-const realStudentData: StudentRow[] = [
-  {
-    id: '1015957',
-    name: 'Molina Mendez, Genesis',
-    grade: '1',
-    teacher: 'Mitchell, Heather',
-    studentId: '1015957',
-    attendanceRate: 48.15,
-    absences: 14,
-    enrolled: 27,
-    present: 13,
-    tier: 'Tier 3',
-    riskLevel: 'high',
-    lastIntervention: 'New student - enrolled 3/26/25',
-    attendanceHistory: [
-      { date: '5/9', status: 'absent', percentage: 44.44 },
-      { date: '5/2', status: 'present', percentage: 51.85 },
-      { date: '4/17', status: 'absent', percentage: 59.09 },
-    ],
-    iReadyScores: [],
-    interventions: [
-      {
-        date: '2025-05-02',
-        type: 'Parent Contact',
-        status: 'Completed',
-        notes: 'Called dad about attendance. Student sent home due to lice treatment.'
-      }
-    ],
-    comments: [
-      {
-        date: '2025-05-02',
-        staff: 'Mitchell, Heather',
-        comment: 'Student was sent home on 4/8/25 by school nurse due to student having lice. Called dad and he explained they are new to the city.'
-      }
-    ]
-  },
-  {
-    id: '1011396',
-    name: 'Hernandez, Mia',
-    grade: '3',
-    teacher: 'Porter, Aimee',
-    studentId: '1011396',
-    attendanceRate: 65.38,
-    absences: 54,
-    enrolled: 156,
-    present: 102,
-    tier: 'Tier 3',
-    riskLevel: 'high',
-    lastIntervention: 'SART 4/29/25',
-    attendanceHistory: [
-      { date: '5/9', status: 'absent', percentage: 34.62 },
-      { date: '5/2', status: 'present', percentage: 35.76 },
-      { date: '4/17', status: 'absent', percentage: 36.05 },
-      { date: '4/11', status: 'absent', percentage: 35.21 },
-    ],
-    iReadyScores: [
-      {
-        subject: 'ELA',
-        testDate: '2024-08-27',
-        overallScore: 593,
-        placement: 'Grade 5',
-        lexileLevel: '980L',
-        percentile: 62,
-        gain: 0
-      },
-      {
-        subject: 'Math',
-        testDate: '2024-08-27',
-        overallScore: 512,
-        placement: 'Grade 2',
-        percentile: 45,
-        gain: 12
-      }
-    ],
-    interventions: [
-      {
-        date: '2024-10-18',
-        type: 'SART',
-        status: 'Completed',
-        notes: 'SART signed. Home issues with father not supportive. Student has asthma.'
-      },
-      {
-        date: '2024-11-22',
-        type: 'SARB',
-        status: 'No Show',
-        notes: 'No show on 11/22, signed on 12/13/24'
-      },
-      {
-        date: '2025-04-29',
-        type: 'SART',
-        status: 'Completed',
-        notes: 'Second SART contract signed'
-      }
-    ],
-    comments: [
-      {
-        date: '2024-09-04',
-        staff: 'Hernandez',
-        comment: 'Spoke to mom - family emergency. Student has been sick often with dr appointments. Monitoring attendance closely.'
-      },
-      {
-        date: '2024-12-02',
-        staff: 'Carroll',
-        comment: 'Mia comes in daily for morning check-ins. Still consistently missing at least one day a week. Participating in Mentoring Matters program.'
-      }
-    ]
-  },
-  {
-    id: '1015880',
-    name: 'Lemus, Ava',
-    grade: '1',
-    teacher: 'Mitchell, Heather',
-    studentId: '1015880',
-    attendanceRate: 68.52,
-    absences: 17,
-    enrolled: 54,
-    present: 37,
-    tier: 'Tier 2',
-    riskLevel: 'medium',
-    lastIntervention: 'Called 5/8/25 - No answer',
-    attendanceHistory: [
-      { date: '4/17', status: 'absent', percentage: 31.48 },
-      { date: '4/11', status: 'absent', percentage: 28.57 },
-      { date: '4/4', status: 'absent', percentage: 31.11 },
-    ],
-    iReadyScores: [],
-    interventions: [],
-    comments: [
-      {
-        date: '2025-05-08',
-        staff: 'Staff',
-        comment: 'Called at 9:48am - No answer'
-      }
-    ]
-  },
-  {
-    id: '1013808',
-    name: 'Dorsey, Lilliana',
-    grade: '0',
-    teacher: 'Lizardi, Wendy',
-    studentId: '1013808',
-    attendanceRate: 71.15,
-    absences: 45,
-    enrolled: 156,
-    present: 111,
-    tier: 'Tier 3',
-    riskLevel: 'high',
-    lastIntervention: 'Will send to Mediation',
-    attendanceHistory: [
-      { date: '5/9', status: 'absent', percentage: 28.85 },
-      { date: '5/2', status: 'present', percentage: 29.80 },
-      { date: '4/17', status: 'absent', percentage: 30.61 },
-    ],
-    iReadyScores: [],
-    interventions: [
-      {
-        date: '2024-11-05',
-        type: 'SART',
-        status: 'Completed',
-        notes: 'SART signed by mother. Student has been sick a lot. Home issues between parents.'
-      },
-      {
-        date: '2025-02-28',
-        type: 'SARB',
-        status: 'No Show',
-        notes: 'Did not attend SARB meeting'
-      }
-    ],
-    comments: [
-      {
-        date: '2024-12-02',
-        staff: 'Carroll',
-        comment: 'Attempted to leave a message. The mailbox is full.'
-      },
-      {
-        date: '2024-11-05',
-        staff: 'Machado',
-        comment: 'SART signed by mother. She has been sick a lot. Also there are home issues between the parents.'
-      }
-    ]
-  }
-];
 
 // Tier Badge Component
 interface TierBadgeProps {
@@ -304,11 +79,9 @@ function TierBadge({ tier }: TierBadgeProps) {
 const columns: Column[] = [
   { key: 'name', label: 'Student Name', sortable: true },
   { key: 'grade', label: 'Grade', sortable: true },
-  { key: 'teacher', label: 'Teacher', sortable: true },
   { key: 'attendanceRate', label: 'Attendance %', sortable: true },
   { key: 'absences', label: 'Absences', sortable: true },
   { key: 'tier', label: 'Tier', sortable: false },
-  { key: 'lastIntervention', label: 'Latest Intervention', sortable: false },
 ];
 
 // Mock user for layout
@@ -321,26 +94,52 @@ const mockUser = {
 };
 
 export default function AttendancePage() {
-  const [sortColumn, setSortColumn] = React.useState<keyof StudentRow | null>(null);
-  const [sortDirection, setSortDirection] = React.useState<SortDirection>(null);
-  const [students, setStudents] = React.useState<StudentRow[]>(realStudentData);
-  const [selectedStudent, setSelectedStudent] = React.useState<StudentRow | null>(null);
-  const [sidebarOpen, setSidebarOpen] = React.useState(false);
-  const [filterTier, setFilterTier] = React.useState<string>('all');
-  const [filterGrade, setFilterGrade] = React.useState<string>('all');
-  const [selectedSchool, setSelectedSchool] = React.useState<string>('all');
-
-  // Schools in the district
-  const schools = [
-    { id: 'all', name: 'All Schools (District-wide)' },
-    { id: 'romoland-elementary', name: 'Romoland Elementary' },
-    { id: 'heritage-elementary', name: 'Heritage Elementary' },
-    { id: 'romoland-middle', name: 'Romoland Middle School' },
-    { id: 'east-valley-high', name: 'East Valley High School' },
+  // School year state - matches dashboard
+  const [selectedSchoolYear, setSelectedSchoolYear] = React.useState<string>('2024');
+  
+  // Available school years
+  const schoolYears = [
+    { value: '2024', label: 'SY 2024-2025', description: 'Aug 15, 2024 - Jun 12, 2025' }
   ];
 
+  // Get schools data from dashboard hook
+  const { schools } = useDashboardData('all', selectedSchoolYear);
+
+  // Students data hook with pagination and filtering
+  const {
+    students,
+    pagination,
+    isLoading,
+    error,
+    filters,
+    currentPage,
+    pageSize,
+    setFilters,
+    setPageSize,
+    goToPage,
+    nextPage,
+    prevPage,
+    refreshData,
+    clearError,
+    setSorting
+  } = useStudentsData(
+    {
+      schoolId: 'all',
+      grade: 'all',
+      tier: 'all',
+      schoolYear: selectedSchoolYear
+    },
+    20
+  );
+
+  // Local state for UI
+  const [selectedStudent, setSelectedStudent] = React.useState<StudentData | null>(null);
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [sortColumn, setSortColumn] = React.useState<keyof StudentData | null>(null);
+  const [sortDirection, setSortDirection] = React.useState<SortDirection>(null);
+
   // Handle student selection
-  const handleStudentClick = (student: StudentRow) => {
+  const handleStudentClick = (student: StudentData) => {
     setSelectedStudent(student);
     setSidebarOpen(true);
   };
@@ -351,8 +150,30 @@ export default function AttendancePage() {
     setSelectedStudent(null);
   };
 
-  // Handle column sorting
-  const handleSort = (column: keyof StudentRow) => {
+  // Handle filter changes
+  const handleSchoolChange = (schoolId: string) => {
+    setFilters({ ...filters, schoolId });
+  };
+
+  const handleGradeChange = (grade: string) => {
+    setFilters({ ...filters, grade });
+  };
+
+  const handleTierChange = (tier: string) => {
+    setFilters({ ...filters, tier });
+  };
+
+  const handleSchoolYearChange = (schoolYear: string) => {
+    setSelectedSchoolYear(schoolYear);
+    setFilters({ ...filters, schoolYear });
+  };
+
+  const handleSearchChange = (search: string) => {
+    setFilters({ ...filters, search });
+  };
+
+  // Handle column sorting (server-side)
+  const handleSort = (column: keyof StudentData) => {
     let newDirection: SortDirection = 'asc';
     
     if (sortColumn === column) {
@@ -368,47 +189,18 @@ export default function AttendancePage() {
     setSortColumn(newDirection ? column : null);
     setSortDirection(newDirection);
 
-    // Sort the data
+    // Use server-side sorting
     if (newDirection) {
-      const sortedStudents = [...students].sort((a, b) => {
-        const aValue = a[column];
-        const bValue = b[column];
-
-        if (aValue === undefined && bValue === undefined) return 0;
-        if (aValue === undefined) return 1;
-        if (bValue === undefined) return -1;
-
-        let comparison = 0;
-        if (typeof aValue === 'string' && typeof bValue === 'string') {
-          comparison = aValue.localeCompare(bValue);
-        } else if (typeof aValue === 'number' && typeof bValue === 'number') {
-          comparison = aValue - bValue;
-        } else {
-          comparison = String(aValue).localeCompare(String(bValue));
-        }
-
-        return newDirection === 'desc' ? -comparison : comparison;
-      });
-      setStudents(sortedStudents);
+      setSorting(column as string, newDirection);
     } else {
-      setStudents(realStudentData);
+      // Reset to default sorting (Tier 3 first, then alphabetical)
+      setSorting('default', 'asc');
     }
   };
 
-  // Filter students based on tier, grade, and school
-  const filteredStudents = React.useMemo(() => {
-    return students.filter(student => {
-      const tierMatch = filterTier === 'all' || student.tier.toLowerCase() === filterTier.toLowerCase();
-      const gradeMatch = filterGrade === 'all' || student.grade === filterGrade;
-      // For now, since we don't have school data in the CSV, we'll show all students for any school selection
-      // In a real implementation, this would filter by student.school === selectedSchool
-      const schoolMatch = selectedSchool === 'all' || true; // Show all students for any school selection
-      return tierMatch && gradeMatch && schoolMatch;
-    });
-  }, [students, filterTier, filterGrade, selectedSchool]);
 
   // Get sort icon for column header
-  const getSortIcon = (column: keyof StudentRow) => {
+  const getSortIcon = (column: keyof StudentData) => {
     if (sortColumn !== column) {
       return <ChevronsUpDown className="ml-2 h-4 w-4" />;
     }
@@ -422,17 +214,17 @@ export default function AttendancePage() {
   };
 
   // Get aria-sort value for column header
-  const getAriaSort = (column: keyof StudentRow) => {
+  const getAriaSort = (column: keyof StudentData) => {
     if (sortColumn !== column) {
       return 'none';
     }
     return sortDirection === 'asc' ? 'ascending' : sortDirection === 'desc' ? 'descending' : 'none';
   };
 
-  // Get unique grades for filter
+  // Get unique grades for filter - hardcoded for now since we need all grades, not just current page
   const availableGrades = React.useMemo(() => {
-    const grades = [...new Set(realStudentData.map(s => s.grade))].sort();
-    return grades;
+    // Standard K-12 grades plus special grades
+    return ['-2', '-1', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
   }, []);
 
   return (
@@ -448,129 +240,281 @@ export default function AttendancePage() {
           </div>
 
           {/* Filter Controls */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Select value={selectedSchool} onValueChange={setSelectedSchool}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Select school..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {schools.map((school) => (
-                    <SelectItem key={school.id} value={school.id}>
-                      {school.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="bg-white rounded-lg border p-4">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-4">
+                {/* Search Input */}
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm font-medium text-gray-700">Search:</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Student name or ID..."
+                      value={filters.search || ''}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      className="pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent w-64"
+                    />
+                  </div>
+                </div>
+                {/* School Selection */}
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm font-medium text-gray-700">School:</label>
+                  <Select value={filters.schoolId || 'all'} onValueChange={handleSchoolChange}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Select school..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {schools.map((school) => (
+                        <SelectItem key={school.id} value={school.id}>
+                          {school.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <select
-                value={filterGrade}
-                onChange={(e) => setFilterGrade(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="all">All Grades</option>
-                {availableGrades.map(grade => (
-                  <option key={grade} value={grade}>Grade {grade}</option>
-                ))}
-              </select>
-              
-              <select
-                value={filterTier}
-                onChange={(e) => setFilterTier(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="all">All Tiers</option>
-                <option value="tier 1">Tier 1</option>
-                <option value="tier 2">Tier 2</option>
-                <option value="tier 3">Tier 3</option>
-              </select>
+                {/* Grade Selection */}
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm font-medium text-gray-700">Grade:</label>
+                  <select
+                    value={filters.grade || 'all'}
+                    onChange={(e) => handleGradeChange(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  >
+                    <option value="all">All Grades</option>
+                    {availableGrades.map(grade => (
+                      <option key={grade} value={grade}>
+                        {grade === '-2' ? 'Grade P (Preschool)' :
+                         grade === '-1' ? 'Grade TK (Transitional Kindergarten)' :
+                         grade === '0' ? 'Grade K (Kindergarten)' :
+                         `Grade ${grade}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* Tier Selection */}
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm font-medium text-gray-700">Tier:</label>
+                  <select
+                    value={filters.tier || 'all'}
+                    onChange={(e) => handleTierChange(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  >
+                    <option value="all">All Tiers</option>
+                    <option value="1">Tier 1</option>
+                    <option value="2">Tier 2</option>
+                    <option value="3">Tier 3</option>
+                  </select>
+                </div>
+
+                {/* School Year Selection */}
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm font-medium text-gray-700">School Year:</label>
+                  <Select value={selectedSchoolYear} onValueChange={handleSchoolYearChange}>
+                    <SelectTrigger className="w-48">
+                      <Calendar className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="Select year..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {schoolYears.map((year) => (
+                        <SelectItem key={year.value} value={year.value}>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{year.label}</span>
+                            <span className="text-xs text-gray-500">{year.description}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <Button 
+                  variant="outline" 
+                  onClick={refreshData}
+                  disabled={isLoading}
+                  className="flex items-center space-x-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                  <span>Refresh</span>
+                </Button>
+
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <span>Showing {pagination.total} students</span>
+                </div>
+              </div>
             </div>
-            
-            <div className="text-sm text-muted-foreground">
-              Showing {filteredStudents.length} of {realStudentData.length} students
+
+            {/* Page Size Selection */}
+            <div className="mt-4 flex items-center justify-between border-t pt-4">
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium text-gray-700">Rows per page:</label>
+                <select
+                  value={pageSize}
+                  onChange={(e) => setPageSize(parseInt(e.target.value))}
+                  className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={30}>30</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+
+              {/* Pagination Controls */}
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={prevPage}
+                  disabled={currentPage <= 1 || isLoading}
+                  className="px-2"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                
+                <span className="text-sm text-gray-700">
+                  Page {currentPage} of {pagination.totalPages}
+                </span>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={nextPage}
+                  disabled={currentPage >= pagination.totalPages || isLoading}
+                  className="px-2"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
+
+          {/* Error State */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-start space-x-3">
+                  <div className="text-red-600">
+                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-red-800">Error loading student data</h3>
+                    <p className="text-sm text-red-700 mt-1">{error}</p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={clearError}>
+                  Dismiss
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Attendance Table */}
           <div className="bg-white border-2 border-primary rounded-lg shadow-lg">
-            <div className="overflow-x-auto">
-              <table role="table" className="w-full">
-                <thead>
-                  <tr className="border-b-2 border-primary/20 bg-muted/50">
-                    {columns.map((column) => (
-                      <th
-                        key={column.key}
-                        role="columnheader"
-                        aria-sort={column.sortable ? getAriaSort(column.key) : undefined}
-                        className={cn(
-                          'px-6 py-3 text-left text-xs font-medium text-primary uppercase tracking-wider',
-                          column.sortable && 'cursor-pointer hover:bg-primary/10',
-                          column.className
-                        )}
-                        onClick={column.sortable ? () => handleSort(column.key) : undefined}
-                      >
-                        <div className="flex items-center">
-                          {column.label}
-                          {column.sortable && getSortIcon(column.key)}
-                        </div>
-                      </th>
+            {isLoading ? (
+              <div className="p-8">
+                <div className="animate-pulse space-y-4">
+                  <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                  <div className="space-y-3">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="grid grid-cols-7 gap-4">
+                        <div className="h-4 bg-gray-200 rounded col-span-2"></div>
+                        <div className="h-4 bg-gray-200 rounded"></div>
+                        <div className="h-4 bg-gray-200 rounded col-span-2"></div>
+                        <div className="h-4 bg-gray-200 rounded"></div>
+                        <div className="h-4 bg-gray-200 rounded"></div>
+                      </div>
                     ))}
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-primary/10">
-                  {filteredStudents.map((student, index) => (
-                    <tr
-                      key={student.id}
-                      className={cn(
-                        'hover:bg-primary/5 cursor-pointer transition-colors',
-                        index % 2 === 0 ? 'bg-white' : 'bg-muted/30'
-                      )}
-                      onClick={() => handleStudentClick(student)}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-medium text-primary">{student.name}</div>
-                        <div className="text-sm text-muted-foreground">ID: {student.studentId}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
-                        {student.grade}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
-                        {student.teacher}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-primary">
-                          {student.attendanceRate.toFixed(1)}%
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {student.present}/{student.enrolled} days
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
-                        {student.absences}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <TierBadge tier={student.tier} />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground max-w-xs truncate">
-                        {student.lastIntervention || 'None'}
-                      </td>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table role="table" className="w-full">
+                  <thead>
+                    <tr className="border-b-2 border-primary/20 bg-muted/50">
+                      {columns.map((column) => (
+                        <th
+                          key={column.key}
+                          role="columnheader"
+                          aria-sort={column.sortable ? getAriaSort(column.key) : undefined}
+                          className={cn(
+                            'px-6 py-3 text-left text-xs font-medium text-primary uppercase tracking-wider',
+                            column.sortable && 'cursor-pointer hover:bg-primary/10',
+                            column.className
+                          )}
+                          onClick={column.sortable ? () => handleSort(column.key) : undefined}
+                        >
+                          <div className="flex items-center">
+                            {column.label}
+                            {column.sortable && getSortIcon(column.key)}
+                          </div>
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-primary/10">
+                    {students.map((student, index) => (
+                      <tr
+                        key={student.id}
+                        className={cn(
+                          'hover:bg-primary/5 cursor-pointer transition-colors',
+                          index % 2 === 0 ? 'bg-white' : 'bg-muted/30'
+                        )}
+                        onClick={() => handleStudentClick(student)}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="font-medium text-primary">{student.name}</div>
+                          <div className="text-sm text-muted-foreground">ID: {student.studentId}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
+                          {student.grade === '-2' ? 'Grade P' : 
+                           student.grade === '-1' ? 'Grade TK' :
+                           student.grade === '0' ? 'Grade K' :
+                           `Grade ${student.grade}`}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-primary">
+                            {student.attendanceRate.toFixed(1)}%
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {student.present}/{student.enrolled} days
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
+                          {student.absences}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <TierBadge tier={student.tier} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {/* Empty state */}
-          {filteredStudents.length === 0 && (
+          {!isLoading && students.length === 0 && (
             <div className="text-center py-12">
               <div className="text-gray-500">No students match the current filters.</div>
               <Button
                 variant="outline"
                 onClick={() => {
-                  setFilterTier('all');
-                  setFilterGrade('all');
-                  setSelectedSchool('all');
+                  setFilters({
+                    schoolId: 'all',
+                    grade: 'all',
+                    tier: 'all',
+                    schoolYear: selectedSchoolYear,
+                    search: ''
+                  });
                 }}
                 className="mt-4"
               >

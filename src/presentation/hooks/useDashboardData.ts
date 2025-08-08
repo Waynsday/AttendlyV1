@@ -8,11 +8,19 @@
 import { useState, useEffect, useCallback } from 'react'
 import { dashboardDataService, School, AttendanceData } from '@/lib/services/dashboard-data-service'
 
+export interface TodayMetrics {
+  present: number
+  absent: number
+  total: number
+  rate: number
+}
+
 export interface UseDashboardDataReturn {
   // Data
   schools: School[]
   selectedSchoolId: string
   attendanceData: AttendanceData[]
+  todayMetrics?: TodayMetrics
   
   // State
   isLoading: boolean
@@ -26,11 +34,12 @@ export interface UseDashboardDataReturn {
   clearError: () => void
 }
 
-export function useDashboardData(initialSchoolId: string = 'all'): UseDashboardDataReturn {
+export function useDashboardData(initialSchoolId: string = 'all', schoolYear: string = '2024'): UseDashboardDataReturn {
   // State
   const [schools, setSchools] = useState<School[]>([])
   const [selectedSchoolId, setSelectedSchoolIdState] = useState<string>(initialSchoolId)
   const [attendanceData, setAttendanceData] = useState<AttendanceData[]>([])
+  const [todayMetrics, setTodayMetrics] = useState<TodayMetrics | undefined>(undefined)
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isLoadingAttendance, setIsLoadingAttendance] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
@@ -41,12 +50,12 @@ export function useDashboardData(initialSchoolId: string = 'all'): UseDashboardD
     loadInitialData()
   }, [])
 
-  // Load attendance data when school selection changes
+  // Load attendance data when school selection or school year changes
   useEffect(() => {
     if (schools.length > 0) {
-      loadAttendanceData(selectedSchoolId)
+      loadAttendanceData(selectedSchoolId, schoolYear)
     }
-  }, [selectedSchoolId, schools])
+  }, [selectedSchoolId, schoolYear, schools])
 
   const loadInitialData = useCallback(async () => {
     try {
@@ -58,9 +67,24 @@ export function useDashboardData(initialSchoolId: string = 'all'): UseDashboardD
       setSchools(schoolsData)
 
       // Then load attendance data for initial school
-      const attendanceDataResult = await dashboardDataService.fetchAttendanceSummaries(selectedSchoolId)
-      setAttendanceData(attendanceDataResult)
-      setLastUpdated(new Date().toISOString())
+      console.log(`Loading attendance data for school: ${selectedSchoolId}, year: ${schoolYear}`)
+      const response = await fetch(`/api/attendance-summaries?schoolId=${selectedSchoolId}&schoolYear=${schoolYear}`)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      
+      const result = await response.json()
+      console.log('API Response:', result)
+      
+      if (result.success) {
+        console.log(`Loaded ${result.data?.length || 0} attendance records`)
+        setAttendanceData(result.data || [])
+        setTodayMetrics(result.meta?.todayAttendance)
+        setLastUpdated(new Date().toISOString())
+      } else {
+        throw new Error(result.error || 'Failed to load attendance data')
+      }
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load dashboard data'
@@ -69,16 +93,31 @@ export function useDashboardData(initialSchoolId: string = 'all'): UseDashboardD
     } finally {
       setIsLoading(false)
     }
-  }, [selectedSchoolId])
+  }, [selectedSchoolId, schoolYear])
 
-  const loadAttendanceData = useCallback(async (schoolId: string) => {
+  const loadAttendanceData = useCallback(async (schoolId: string, currentSchoolYear: string = schoolYear) => {
     try {
       setIsLoadingAttendance(true)
       setError(null)
 
-      const attendanceDataResult = await dashboardDataService.fetchAttendanceSummaries(schoolId)
-      setAttendanceData(attendanceDataResult)
-      setLastUpdated(new Date().toISOString())
+      console.log(`Loading attendance data for school change: ${schoolId}, year: ${currentSchoolYear}`)
+      const response = await fetch(`/api/attendance-summaries?schoolId=${schoolId}&schoolYear=${currentSchoolYear}`)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      
+      const result = await response.json()
+      console.log('School change API Response:', result)
+      
+      if (result.success) {
+        console.log(`Loaded ${result.data?.length || 0} attendance records for school ${schoolId}`)
+        setAttendanceData(result.data || [])
+        setTodayMetrics(result.meta?.todayAttendance)
+        setLastUpdated(new Date().toISOString())
+      } else {
+        throw new Error(result.error || 'Failed to load attendance data')
+      }
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load attendance data'
@@ -87,7 +126,7 @@ export function useDashboardData(initialSchoolId: string = 'all'): UseDashboardD
     } finally {
       setIsLoadingAttendance(false)
     }
-  }, [])
+  }, [schoolYear])
 
   const setSelectedSchoolId = useCallback((schoolId: string) => {
     setSelectedSchoolIdState(schoolId)
@@ -101,13 +140,20 @@ export function useDashboardData(initialSchoolId: string = 'all'): UseDashboardD
       dashboardDataService.clearCache()
       
       // Reload both schools and attendance data
-      const [schoolsData, attendanceDataResult] = await Promise.all([
+      const [schoolsResponse, attendanceResponse] = await Promise.all([
         dashboardDataService.fetchSchools(),
-        dashboardDataService.fetchAttendanceSummaries(selectedSchoolId)
+        fetch(`/api/attendance-summaries?schoolId=${selectedSchoolId}&schoolYear=${schoolYear}`)
       ])
 
-      setSchools(schoolsData)
-      setAttendanceData(attendanceDataResult)
+      const attendanceResult = await attendanceResponse.json()
+      
+      setSchools(schoolsResponse)
+      
+      if (attendanceResult.success) {
+        setAttendanceData(attendanceResult.data)
+        setTodayMetrics(attendanceResult.meta?.todayAttendance)
+      }
+      
       setLastUpdated(new Date().toISOString())
 
     } catch (err) {
@@ -115,7 +161,7 @@ export function useDashboardData(initialSchoolId: string = 'all'): UseDashboardD
       setError(errorMessage)
       console.error('Error refreshing dashboard data:', err)
     }
-  }, [selectedSchoolId])
+  }, [selectedSchoolId, schoolYear])
 
   const clearError = useCallback(() => {
     setError(null)
@@ -126,6 +172,7 @@ export function useDashboardData(initialSchoolId: string = 'all'): UseDashboardD
     schools,
     selectedSchoolId,
     attendanceData,
+    todayMetrics,
     
     // State
     isLoading,
