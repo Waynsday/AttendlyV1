@@ -6,12 +6,13 @@
  */
 
 import * as React from 'react';
-import { X, Calendar, BookOpen, AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react';
+import { X, Calendar, BookOpen, AlertTriangle, TrendingUp, TrendingDown, CalendarX } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { cn } from '../utils/cn';
+import { useStudentAttendanceDetails } from '../hooks/useStudentAttendanceDetails';
 
-// Student detailed data interface
+// Student detailed data interface - made fields optional to handle basic StudentData
 interface StudentDetail {
   id: string;
   name: string;
@@ -23,17 +24,17 @@ interface StudentDetail {
   absences: number;
   present: number;
   tier: string;
-  riskLevel: 'low' | 'medium' | 'high';
+  riskLevel?: 'low' | 'medium' | 'high';
   
-  // Attendance history (dates from CSV)
-  attendanceHistory: Array<{
+  // Attendance history (dates from CSV) - optional
+  attendanceHistory?: Array<{
     date: string;
     status: 'present' | 'absent' | 'tardy';
     percentage: number;
   }>;
   
-  // iReady scores
-  iReadyScores: Array<{
+  // iReady scores - optional
+  iReadyScores?: Array<{
     subject: 'ELA' | 'Math';
     testDate: string;
     overallScore: number;
@@ -43,16 +44,16 @@ interface StudentDetail {
     gain: number;
   }>;
   
-  // Intervention history
-  interventions: Array<{
+  // Intervention history - optional
+  interventions?: Array<{
     date: string;
     type: 'Letter 1' | 'Letter 2' | 'SART' | 'SARB' | 'Mediation' | 'Parent Contact';
     status: 'Completed' | 'Pending' | 'No Show';
     notes: string;
   }>;
   
-  // Comments from staff
-  comments: Array<{
+  // Comments from staff - optional
+  comments?: Array<{
     date: string;
     staff: string;
     comment: string;
@@ -66,6 +67,12 @@ interface StudentDetailSidebarProps {
 }
 
 export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetailSidebarProps) {
+  // Fetch detailed attendance data when sidebar opens
+  const attendanceDetails = useStudentAttendanceDetails(
+    isOpen && student ? student.studentId : null,
+    '2024' // Current school year
+  );
+
   if (!student) return null;
 
   const getTierColor = (tier: string) => {
@@ -180,12 +187,14 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
                 </span>
               </div>
               
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-primary">Risk Level:</span>
-                <span className={cn('font-medium capitalize', getRiskColor(student.riskLevel))}>
-                  {student.riskLevel}
-                </span>
-              </div>
+              {student.riskLevel && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-primary">Risk Level:</span>
+                  <span className={cn('font-medium capitalize', getRiskColor(student.riskLevel))}>
+                    {student.riskLevel}
+                  </span>
+                </div>
+              )}
               
               <div className="text-sm text-muted-foreground">
                 <strong className="text-primary">Teacher:</strong> {student.teacher}
@@ -193,37 +202,82 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
             </CardContent>
           </Card>
 
-          {/* Attendance History */}
+          {/* Attendance Details */}
           <Card className="bg-white border-2 border-primary shadow-lg">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2 text-primary">
-                <Calendar className="h-5 w-5" />
-                Attendance Trend
+                <CalendarX className="h-5 w-5" />
+                Attendance Details
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                {student.attendanceHistory.slice(-10).map((record, index) => (
-                  <div key={index} className="flex items-center justify-between py-1">
-                    <span className="text-sm text-muted-foreground">{record.date}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-primary">
-                        {record.percentage.toFixed(1)}%
-                      </span>
-                      <div className={cn(
-                        'w-2 h-2 rounded-full',
-                        record.status === 'present' ? 'bg-tier-1' :
-                        record.status === 'tardy' ? 'bg-tier-2' : 'bg-tier-3'
-                      )} />
+              {attendanceDetails.loading ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                  <span className="ml-2 text-sm text-muted-foreground">Loading attendance details...</span>
+                </div>
+              ) : attendanceDetails.error ? (
+                <div className="text-center py-4">
+                  <div className="text-sm text-red-600 mb-2">Error loading attendance details</div>
+                  <div className="text-xs text-muted-foreground">{attendanceDetails.error}</div>
+                </div>
+              ) : attendanceDetails.data ? (
+                <div className="space-y-4">
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-2 gap-4 text-center border-b pb-3">
+                    <div>
+                      <div className="text-lg font-bold text-primary">{attendanceDetails.data.presentDays}</div>
+                      <div className="text-xs text-muted-foreground">Present Days</div>
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold text-primary">{attendanceDetails.data.absentDays}</div>
+                      <div className="text-xs text-muted-foreground">Absent Days</div>
                     </div>
                   </div>
-                ))}
-              </div>
+
+                  {/* Absent Dates */}
+                  {attendanceDetails.data.absentDates && attendanceDetails.data.absentDates.length > 0 ? (
+                    <div>
+                      <h4 className="text-sm font-medium text-primary mb-2">Absent Dates ({attendanceDetails.data.absentDates.length})</h4>
+                      <div className="max-h-48 overflow-y-auto space-y-1">
+                        {attendanceDetails.data.absentDates.map((record, index) => (
+                          <div key={index} className="flex items-center justify-between py-1 px-2 bg-red-50 rounded text-sm">
+                            <span className="text-muted-foreground">{record.date}</span>
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-red-500" />
+                              <span className="text-red-700 font-medium">Absent</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 bg-green-50 rounded">
+                      <div className="text-sm font-medium text-green-800">Perfect Attendance!</div>
+                      <div className="text-xs text-green-600 mt-1">No absences recorded this year</div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <div className="text-sm text-muted-foreground mb-2">Current Year Totals</div>
+                  <div className="grid grid-cols-2 gap-4 text-center">
+                    <div>
+                      <div className="text-lg font-bold text-primary">{student.present}</div>
+                      <div className="text-xs text-muted-foreground">Present Days</div>
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold text-primary">{student.absences}</div>
+                      <div className="text-xs text-muted-foreground">Absent Days</div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
           {/* iReady Scores */}
-          {student.iReadyScores.length > 0 && (
+          {student.iReadyScores && student.iReadyScores.length > 0 && (
             <Card className="bg-white border-2 border-primary shadow-lg">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2 text-primary">
@@ -276,7 +330,7 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
           )}
 
           {/* Intervention History */}
-          {student.interventions.length > 0 && (
+          {student.interventions && student.interventions.length > 0 && (
             <Card className="bg-white border-2 border-primary shadow-lg">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2 text-primary">
@@ -309,7 +363,7 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
           )}
 
           {/* Staff Comments */}
-          {student.comments.length > 0 && (
+          {student.comments && student.comments.length > 0 && (
             <Card className="bg-white border-2 border-primary shadow-lg">
               <CardHeader>
                 <CardTitle className="text-lg text-primary">Staff Comments</CardTitle>
