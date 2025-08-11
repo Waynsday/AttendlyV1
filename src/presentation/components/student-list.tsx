@@ -24,7 +24,7 @@ interface Student {
   daysAbsent: number;
   recoveryDays: number;
   interventionStatus: 'active' | 'pending' | 'none';
-  tardyCount: number;
+  tardies: number;
   tier: string;
   lastAbsence: string;
   chronicallyAbsent: boolean;
@@ -494,7 +494,7 @@ export function StudentList({
                         </span>
                       </td>
                     )}
-                    {!isMobile && <td className="p-2">{student.tardyCount} tardies</td>}
+                    {!isMobile && <td className="p-2">{student.tardies} tardies</td>}
                     {!isMobile && (
                       <td className="p-2 text-sm text-muted-foreground">
                         {formatDate(student.lastAbsence)}

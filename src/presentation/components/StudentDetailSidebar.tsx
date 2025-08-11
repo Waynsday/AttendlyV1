@@ -23,6 +23,7 @@ interface StudentDetail {
   enrolled: number;
   absences: number;
   present: number;
+  tardies: number;
   tier: string;
   riskLevel?: 'low' | 'medium' | 'high';
   
@@ -78,10 +79,13 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
   const getTierColor = (tier: string) => {
     switch (tier.toLowerCase()) {
       case 'tier 1':
+      case 'low risk':
         return 'bg-green-100 text-green-800 border-green-200';
       case 'tier 2':
+      case 'medium risk':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'tier 3':
+      case 'high risk':
         return 'bg-red-100 text-red-800 border-red-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -165,7 +169,7 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
               <CardTitle className="text-lg text-primary">Overview</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <div className="text-2xl font-bold text-primary">
                     {student.attendanceRate.toFixed(1)}%
@@ -178,12 +182,18 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
                   </div>
                   <div className="text-sm text-muted-foreground">Total Absences</div>
                 </div>
+                <div>
+                  <div className={`text-2xl font-bold ${student.tardies > 5 ? 'text-yellow-600' : 'text-primary'}`}>
+                    {student.tardies || 0}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Total Tardies</div>
+                </div>
               </div>
               
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-primary">Risk Tier:</span>
+                <span className="text-sm font-medium text-primary">Risk Level:</span>
                 <span className={cn('px-2 py-1 rounded-full text-xs font-medium border', getTierColor(student.tier))}>
-                  {student.tier}
+                  {student.tier.replace('Tier 1', 'Low Risk').replace('Tier 2', 'Medium Risk').replace('Tier 3', 'High Risk')}
                 </span>
               </div>
               
@@ -261,7 +271,7 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
               ) : (
                 <div className="text-center py-4">
                   <div className="text-sm text-muted-foreground mb-2">Current Year Totals</div>
-                  <div className="grid grid-cols-2 gap-4 text-center">
+                  <div className="grid grid-cols-3 gap-3 text-center">
                     <div>
                       <div className="text-lg font-bold text-primary">{student.present}</div>
                       <div className="text-xs text-muted-foreground">Present Days</div>
@@ -269,6 +279,12 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
                     <div>
                       <div className="text-lg font-bold text-primary">{student.absences}</div>
                       <div className="text-xs text-muted-foreground">Absent Days</div>
+                    </div>
+                    <div>
+                      <div className={`text-lg font-bold ${student.tardies > 5 ? 'text-yellow-600' : 'text-primary'}`}>
+                        {student.tardies || 0}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Tardies</div>
                     </div>
                   </div>
                 </div>

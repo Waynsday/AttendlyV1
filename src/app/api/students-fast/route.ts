@@ -64,13 +64,22 @@ export async function GET(request: NextRequest) {
     
     console.log('Pagination debug:', {
       dataLength: data?.length || 0,
-      firstRowTotalCount: data?.[0]?.total_count,
-      parsedTotalCount: totalCount,
+      totalCount,
       page,
       offset,
       limit: validatedLimit,
       totalPages
     });
+
+    // Helper function to map risk_level to tier format
+    const mapRiskLevelToTier = (riskLevel: string): string => {
+      switch (riskLevel?.toLowerCase()) {
+        case 'low': return 'Tier 1';
+        case 'medium': return 'Tier 2';
+        case 'high': return 'Tier 3';
+        default: return 'Tier 1';
+      }
+    };
 
     // Transform data to match expected format
     const students = (data || []).map((row: any) => ({
@@ -83,12 +92,12 @@ export async function GET(request: NextRequest) {
       absences: row.absent_days || 0,
       enrolled: row.enrolled_days || 0,
       present: row.present_days || 0,
-      tier: row.tier,
+      tier: mapRiskLevelToTier(row.risk_level),
       riskLevel: row.risk_level,
+      tardies: row.tardies || 0,
       schoolName: row.school_name
     }));
 
-    const endTime = Date.now();
     console.log(`✅ Fast query returned ${students.length} students out of ${totalCount} total`);
 
     return NextResponse.json({
@@ -127,3 +136,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+

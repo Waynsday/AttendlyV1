@@ -242,15 +242,15 @@ const AttendanceCardComponent = ({
             <div className="flex items-center gap-4 text-sm">
               <div className="text-center">
                 <div className="font-semibold" style={{color: TIER_COLORS[1]}}>{safeValue(gradeData.tier1)}</div>
-                <div className="text-xs text-muted-foreground">T1</div>
+                <div className="text-xs text-muted-foreground">Low</div>
               </div>
               <div className="text-center">
                 <div className="font-semibold" style={{color: TIER_COLORS[2]}}>{safeValue(gradeData.tier2)}</div>
-                <div className="text-xs text-muted-foreground">T2</div>
+                <div className="text-xs text-muted-foreground">Med</div>
               </div>
               <div className="text-center">
                 <div className="font-semibold" style={{color: TIER_COLORS[3]}}>{safeValue(gradeData.tier3)}</div>
-                <div className="text-xs text-muted-foreground">T3</div>
+                <div className="text-xs text-muted-foreground">High</div>
               </div>
             </div>
           </div>
@@ -315,15 +315,15 @@ const AttendanceCardComponent = ({
             <div className="grid grid-cols-3 gap-4 text-center text-base pt-3">
               <div>
                 <div className="font-medium text-lg" style={{color: TIER_COLORS[1]}}>{safeValue(gradeData.tier1)}</div>
-                <div className="text-sm text-primary-700">Tier 1</div>
+                <div className="text-sm text-primary-700">Low Risk</div>
               </div>
               <div>
                 <div className="font-medium text-lg" style={{color: TIER_COLORS[2]}}>{safeValue(gradeData.tier2)}</div>
-                <div className="text-sm text-primary-700">Tier 2</div>
+                <div className="text-sm text-primary-700">Medium Risk</div>
               </div>
               <div>
                 <div className="font-medium text-lg" style={{color: TIER_COLORS[3]}}>{safeValue(gradeData.tier3)}</div>
-                <div className="text-sm text-primary-700">Tier 3</div>
+                <div className="text-sm text-primary-700">High Risk</div>
               </div>
             </div>
 
