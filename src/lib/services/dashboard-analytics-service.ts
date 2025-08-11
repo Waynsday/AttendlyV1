@@ -39,16 +39,25 @@ export class DashboardAnalyticsService {
     schoolId: string,
     schoolYear: string = '2024'
   ): Promise<GradeLevelSummary[]> {
-    const supabase = createAdminClient()
-    
-    // Calculate date range - handle both YYYY and YYYY-YYYY formats
-    // For SY 2024-2025: Aug 15, 2024 to June 12, 2025
-    const baseYear = schoolYear.includes('-') ? schoolYear.split('-')[0] : schoolYear
-    const startDate = `${baseYear}-08-15`
-    const endDate = `${parseInt(baseYear) + 1}-06-12` // Specific end date: June 12, 2025
+    console.log(`🔄 Getting school summaries for ${schoolId}...`)
     
     // Use direct database queries since we have real data
     return this.getSchoolAttendanceSummariesFallback(schoolId, schoolYear)
+  }
+
+  private async getSchoolName(schoolId: string): Promise<string> {
+    try {
+      const supabase = createAdminClient()
+      const { data, error } = await supabase
+        .from('schools')
+        .select('school_name')
+        .eq('id', schoolId)
+        .single()
+      
+      return data?.school_name || 'Unknown School'
+    } catch (error) {
+      return 'Unknown School'
+    }
   }
 
   /**
@@ -491,6 +500,7 @@ export class DashboardAnalyticsService {
     if (attendanceRate >= 90) return 'medium'
     return 'high'
   }
+
 }
 
 // Export singleton instance

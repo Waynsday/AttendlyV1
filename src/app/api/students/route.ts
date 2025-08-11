@@ -28,7 +28,9 @@ interface StudentWithMetrics {
   present: number;
   tier: string;
   riskLevel: 'low' | 'medium' | 'high';
+  tardies: number;
   lastIntervention?: string;
+  interventionDate?: string;
   school?: string;
   schoolName?: string;
 }
@@ -46,6 +48,20 @@ function calculateRiskLevel(attendanceRate: number): 'low' | 'medium' | 'high' {
   if (attendanceRate >= 90) return 'medium';
   return 'high';
 }
+
+
+
+// Mock intervention data based on conference detail report
+const interventionData: { [key: string]: { intervention: string; date: string } } = {
+  'romeo': { intervention: 'Excused L2', date: '4/15/2025' },
+  'vladhimirz': { intervention: 'Truancy L2', date: '2/24/2025' },
+  'aaron': { intervention: 'Excused L2', date: '5/16/2025' },
+  'adam': { intervention: 'Excused L2', date: '6/6/2025' },
+  'cattleya': { intervention: 'Excused L2', date: '6/6/2025' },
+  'daniel': { intervention: 'Excused L2', date: '4/11/2025' },
+  'leah': { intervention: 'Excused L2', date: '5/16/2025' },
+  'luis': { intervention: 'Truancy L2', date: '4/11/2025' }
+};
 
 export async function GET(request: NextRequest) {
   try {
@@ -83,7 +99,7 @@ export async function GET(request: NextRequest) {
     
     while (hasMore) {
       let studentsQuery = supabase
-        .from('students')
+        .from('student_attendance_summary')
         .select(`
           id,
           aeries_student_id,
@@ -92,12 +108,12 @@ export async function GET(request: NextRequest) {
           grade_level,
           school_id,
           current_homeroom_teacher,
+          tardies,
           schools!inner(
             id,
             school_name
           )
         `)
-        .eq('is_active', true)
         .range(batchStart, batchStart + batchSize - 1);
 
       // Apply filters to each batch
@@ -264,9 +280,22 @@ export async function GET(request: NextRequest) {
       const tier = calculateTier(attendanceRate);
       const riskLevel = calculateRiskLevel(attendanceRate);
 
+      // Use actual names if available, otherwise generate display name
+      const actualFirstName = student.first_name;
+      const actualLastName = student.last_name;
+      
+      const fullName = actualLastName && actualFirstName 
+        ? `${actualLastName}, ${actualFirstName}` 
+        : `Student ${student.aeries_student_id || student.id}`;
+      
+      
+      // Get intervention data based on first name (lowercase)
+      const firstNameLower = actualFirstName ? actualFirstName.toLowerCase() : '';
+      const interventionInfo = interventionData[firstNameLower];
+
       return {
         id: student.id,
-        name: `${student.last_name}, ${student.first_name}`,
+        name: fullName,
         grade: student.grade_level?.toString() || '0',
         teacher: student.current_homeroom_teacher || 'Staff',
         studentId: student.aeries_student_id || student.id,
@@ -276,6 +305,9 @@ export async function GET(request: NextRequest) {
         present: metrics.presentDays,
         tier,
         riskLevel,
+        tardies: student.tardies || 0,
+        lastIntervention: interventionInfo?.intervention,
+        interventionDate: interventionInfo?.date,
         school: student.school_id,
         schoolName: student.schools?.school_name
       };

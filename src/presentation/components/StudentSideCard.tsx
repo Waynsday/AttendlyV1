@@ -32,6 +32,7 @@ interface StudentData {
   attendanceRate: number;
   totalAbsences: number;
   chronicAbsences: number;
+  totalTardies: number;
   tier: 1 | 2 | 3;
   lastAbsenceDate: string;
   
@@ -94,9 +95,9 @@ const getTierBadgeColors = (tier: 1 | 2 | 3, highContrast: boolean = false) => {
 
 const getTierLabel = (tier: 1 | 2 | 3): string => {
   const labels = {
-    1: 'Tier 1: Low risk',
-    2: 'Tier 2: Moderate risk', 
-    3: 'Tier 3: High risk'
+    1: 'Low Risk',
+    2: 'Medium Risk', 
+    3: 'High Risk'
   };
   return labels[tier];
 };
@@ -152,8 +153,13 @@ const useStudentData = (studentId: string, timeout: number = 5000) => {
         abortControllerRef.current?.abort();
       }, timeout);
 
-      const response = await fetch(`/api/students/${studentId}`, {
+      const response = await fetch(`/api/students/${studentId}?_t=${Date.now()}`, {
         signal: abortControllerRef.current.signal,
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
       });
 
       clearTimeout(timeoutId);
@@ -166,7 +172,23 @@ const useStudentData = (studentId: string, timeout: number = 5000) => {
       }
 
       const result = await response.json();
-      setData(result.data);
+      
+      // Calculate total tardies from attendance history if not provided
+      const studentData = result.data;
+      if (studentData && !studentData.totalTardies && studentData.attendanceHistory) {
+        studentData.totalTardies = studentData.attendanceHistory.filter(
+          (record: any) => record.status === 'tardy'
+        ).length;
+      }
+      
+      // Debug logging for tardy data
+      console.log('🎯 StudentSideCard received data:', {
+        name: studentData?.firstName + ' ' + studentData?.lastName,
+        totalTardies: studentData?.totalTardies,
+        attendanceRate: studentData?.attendanceRate
+      });
+      
+      setData(studentData);
     } catch (err: any) {
       if (err.name === 'AbortError') {
         setError('Request timed out. Please try again.');
@@ -443,13 +465,16 @@ export const StudentSideCard: React.FC<StudentSideCardProps> = ({
                           data-testid="tier-badge"
                           aria-label={getTierLabel(data.tier)}
                         >
-                          Tier {data.tier}
+                          {getTierLabel(data.tier)}
                         </div>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                    <div className="grid grid-cols-3 gap-3 text-sm text-gray-600">
                       <div>Total Absences: {data.totalAbsences}</div>
                       <div>Chronic Absences: {data.chronicAbsences}</div>
+                      <div className={data.totalTardies > 5 ? "text-yellow-600 font-medium" : ""}>
+                        Total Tardies: <span className="font-bold">{data.totalTardies || 0}</span>
+                      </div>
                     </div>
                   </div>
 

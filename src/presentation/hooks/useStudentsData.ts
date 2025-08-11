@@ -16,7 +16,9 @@ export interface StudentData {
   present: number;
   tier: string;
   riskLevel: 'low' | 'medium' | 'high';
+  tardies: number;
   lastIntervention?: string;
+  interventionDate?: string;
   school?: string;  
   schoolName?: string;
 }
@@ -116,7 +118,15 @@ export function useStudentsData(
       });
 
       // Use the fast endpoint with Supabase views
-      const response = await fetch(`/api/students-fast?${params.toString()}`);
+      // Add cache busting to ensure fresh data
+      params.set('_t', Date.now().toString());
+      const response = await fetch(`/api/students-fast?${params.toString()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Network error' }));
@@ -124,6 +134,15 @@ export function useStudentsData(
       }
 
       const data: StudentsApiResponse = await response.json();
+
+      // Debug logging to check tardy data
+      if (data.data && data.data.length > 0) {
+        console.log('🔍 Sample student data from API:', {
+          name: data.data[0].name,
+          tardies: data.data[0].tardies,
+          attendanceRate: data.data[0].attendanceRate
+        });
+      }
 
       setState(prev => ({
         ...prev,

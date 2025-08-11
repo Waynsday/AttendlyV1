@@ -351,6 +351,181 @@ export interface Database {
           updated_at?: string
         }
       }
+      grade_attendance_timeline_summary: {
+        Row: {
+          id: string
+          school_id: string
+          grade_level: number
+          summary_date: string
+          total_students: number
+          students_present: number
+          students_absent: number
+          daily_absences: number
+          cumulative_absences: number
+          excused_absences: number
+          unexcused_absences: number
+          tardy_count: number
+          chronic_absent_count: number
+          attendance_rate: number
+          absence_rate: number
+          school_year: string
+          week_number: number
+          month_number: number
+          is_school_day: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          school_id: string
+          grade_level: number
+          summary_date: string
+          total_students?: number
+          students_present?: number
+          students_absent?: number
+          daily_absences?: number
+          cumulative_absences?: number
+          excused_absences?: number
+          unexcused_absences?: number
+          tardy_count?: number
+          chronic_absent_count?: number
+          attendance_rate?: number
+          absence_rate?: number
+          school_year?: string
+          is_school_day?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          school_id?: string
+          grade_level?: number
+          summary_date?: string
+          total_students?: number
+          students_present?: number
+          students_absent?: number
+          daily_absences?: number
+          cumulative_absences?: number
+          excused_absences?: number
+          unexcused_absences?: number
+          tardy_count?: number
+          chronic_absent_count?: number
+          attendance_rate?: number
+          absence_rate?: number
+          school_year?: string
+          is_school_day?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      district_attendance_timeline_summary: {
+        Row: {
+          id: string
+          grade_level: number
+          summary_date: string
+          total_students: number
+          students_present: number
+          students_absent: number
+          daily_absences: number
+          cumulative_absences: number
+          excused_absences: number
+          unexcused_absences: number
+          tardy_count: number
+          chronic_absent_count: number
+          attendance_rate: number
+          absence_rate: number
+          school_year: string
+          schools_included: string[]
+          schools_count: number
+          week_number: number
+          month_number: number
+          is_school_day: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          grade_level: number
+          summary_date: string
+          total_students?: number
+          students_present?: number
+          students_absent?: number
+          daily_absences?: number
+          cumulative_absences?: number
+          excused_absences?: number
+          unexcused_absences?: number
+          tardy_count?: number
+          chronic_absent_count?: number
+          attendance_rate?: number
+          absence_rate?: number
+          school_year?: string
+          schools_included?: string[]
+          schools_count?: number
+          is_school_day?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          grade_level?: number
+          summary_date?: string
+          total_students?: number
+          students_present?: number
+          students_absent?: number
+          daily_absences?: number
+          cumulative_absences?: number
+          excused_absences?: number
+          unexcused_absences?: number
+          tardy_count?: number
+          chronic_absent_count?: number
+          attendance_rate?: number
+          absence_rate?: number
+          school_year?: string
+          schools_included?: string[]
+          schools_count?: number
+          is_school_day?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      attendance_timeline_cache: {
+        Row: {
+          id: string
+          cache_key: string
+          school_filter: string
+          grade_levels: number[]
+          date_range: string
+          timeline_data: any
+          metadata: any
+          expires_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          cache_key: string
+          school_filter: string
+          grade_levels: number[]
+          date_range: string
+          timeline_data: any
+          metadata?: any
+          expires_at: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          cache_key?: string
+          school_filter?: string
+          grade_levels?: number[]
+          date_range?: string
+          timeline_data?: any
+          metadata?: any
+          expires_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -392,3 +567,16 @@ export type AttendanceStatus = Database['public']['Enums']['attendance_status']
 export type TeacherRole = Database['public']['Enums']['teacher_role']
 export type InterventionType = Database['public']['Enums']['intervention_type']
 export type InterventionStatus = Database['public']['Enums']['intervention_status']
+
+// Timeline-specific types (updated for revised schema)
+export type GradeAttendanceTimelineSummary = Database['public']['Tables']['grade_attendance_timeline_summary']['Row']
+export type GradeAttendanceTimelineSummaryInsert = Database['public']['Tables']['grade_attendance_timeline_summary']['Insert']
+export type GradeAttendanceTimelineSummaryUpdate = Database['public']['Tables']['grade_attendance_timeline_summary']['Update']
+
+export type DistrictAttendanceTimelineSummary = Database['public']['Tables']['district_attendance_timeline_summary']['Row']
+export type DistrictAttendanceTimelineSummaryInsert = Database['public']['Tables']['district_attendance_timeline_summary']['Insert']
+export type DistrictAttendanceTimelineSummaryUpdate = Database['public']['Tables']['district_attendance_timeline_summary']['Update']
+
+export type AttendanceTimelineCache = Database['public']['Tables']['attendance_timeline_cache']['Row']
+export type AttendanceTimelineCacheInsert = Database['public']['Tables']['attendance_timeline_cache']['Insert']
+export type AttendanceTimelineCacheUpdate = Database['public']['Tables']['attendance_timeline_cache']['Update']

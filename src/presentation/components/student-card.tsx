@@ -68,7 +68,7 @@ interface Student {
   daysAbsent: number;
   recoveryDays: number;
   interventionStatus: string;
-  tardyCount: number;
+  tardies: number;
   tier: string;
   lastAbsence: string;
   chronicallyAbsent: boolean;
@@ -373,6 +373,10 @@ export const StudentCard: React.FC<StudentCardProps> = ({
             <span>{student.teacher}</span>
             <span>•</span>
             <span>Student ID: {student.id}</span>
+            <span>•</span>
+            <span className={student.tardies > 5 ? "text-warning font-semibold" : ""}">
+              {student.tardies} tardies
+            </span>
           </DialogDescription>
           
           {/* Close button with proper accessibility */}
@@ -483,7 +487,7 @@ export const StudentCard: React.FC<StudentCardProps> = ({
                     <p className="text-sm text-muted-foreground">Days Absent</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-warning">{student.tardyCount} tardies</p>
+                    <p className="text-2xl font-bold text-warning">{student.tardies} tardies</p>
                     <p className="text-sm text-muted-foreground">Tardies</p>
                   </div>
                   <div className="text-center">
@@ -509,6 +513,12 @@ export const StudentCard: React.FC<StudentCardProps> = ({
                   <p className="text-sm">
                     <span className="text-muted-foreground">Last Absence:</span>{' '}
                     <span className="font-medium">{formatDate(student.lastAbsence)}</span>
+                  </p>
+                  <p className="text-sm">
+                    <span className="text-muted-foreground">Total Tardies:</span>{' '}
+                    <span className={`font-medium ${student.tardies > 5 ? 'text-warning' : student.tardies > 10 ? 'text-destructive' : ''}`}>
+                      {student.tardies}
+                    </span>
                   </p>
                   <p className="text-sm">
                     Tier: {student.tier}

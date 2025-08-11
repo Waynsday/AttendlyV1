@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Tardy Data</title>
+</head>
+<body>
+    <h1>Tardy Data Debug Test</h1>
+    <button onclick="testAPI()">Test API Directly</button>
+    <div id="results"></div>
+
+    <script>
+        async function testAPI() {
+            try {
+                const response = await fetch('http://localhost:3004/api/students-fast?limit=3&_t=' + Date.now());
+                const data = await response.json();
+                
+                document.getElementById('results').innerHTML = 
+                    '<h2>API Response:</h2><pre>' + 
+                    JSON.stringify(data, null, 2) + 
+                    '</pre>';
+                
+                console.log('Direct API test:', data);
+                
+                // Test specific tardy values
+                if (data.data && data.data.length > 0) {
+                    data.data.forEach((student, index) => {
+                        console.log(`Student ${index}: ${student.name} has ${student.tardies} tardies`);
+                    });
+                }
+            } catch (error) {
+                document.getElementById('results').innerHTML = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

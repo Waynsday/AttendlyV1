@@ -40,17 +40,17 @@ function TierBadge({ tier }: TierBadgeProps) {
     switch (tier.toLowerCase()) {
       case 'tier 1':
         return {
-          label: 'Tier 1',
+          label: 'Low Risk',
           className: 'bg-green-100 text-green-800 border-green-200',
         };
       case 'tier 2':
         return {
-          label: 'Tier 2',
+          label: 'Medium Risk',
           className: 'bg-yellow-100 text-yellow-800 border-yellow-200',
         };
       case 'tier 3':
         return {
-          label: 'Tier 3',
+          label: 'High Risk',
           className: 'bg-red-100 text-red-800 border-red-200',
         };
       default:
@@ -75,13 +75,16 @@ function TierBadge({ tier }: TierBadgeProps) {
   );
 }
 
+
 // Table columns configuration
 const columns: Column[] = [
   { key: 'name', label: 'Student Name', sortable: true },
   { key: 'grade', label: 'Grade', sortable: true },
   { key: 'attendanceRate', label: 'Attendance %', sortable: true },
   { key: 'absences', label: 'Absences', sortable: true },
-  { key: 'tier', label: 'Tier', sortable: false },
+  { key: 'tardies', label: 'Tardies', sortable: true },
+  { key: 'tier', label: 'Risk Level', sortable: false },
+  { key: 'lastIntervention', label: 'Latest Intervention', sortable: false },
 ];
 
 // Mock user for layout
@@ -490,8 +493,23 @@ export default function AttendancePage() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
                           {student.absences}
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
+                          {student.tardies || 0}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <TierBadge tier={student.tier} />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {student.lastIntervention ? (
+                            <div>
+                              <div className="text-sm font-medium text-primary">{student.lastIntervention}</div>
+                              {student.interventionDate && (
+                                <div className="text-xs text-muted-foreground">{student.interventionDate}</div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">None</span>
+                          )}
                         </td>
                       </tr>
                     ))}
