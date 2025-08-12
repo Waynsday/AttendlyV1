@@ -1,0 +1,366 @@
+# Alertmanager Configuration for AP Tool V1
+# FERPA-compliant educational technology alert management
+
+global:
+  # Global SMTP configuration for educational institution
+  smtp_smarthost: 'smtp.district.edu:587'
+  smtp_from: 'ap-tool-alerts@romoland.k12.ca.us'
+  smtp_auth_username: 'ap-tool-alerts@romoland.k12.ca.us'
+  smtp_auth_password_file: '/etc/alertmanager/smtp_password'
+  smtp_require_tls: true
+  
+  # Educational institution information
+  smtp_hello: 'alertmanager.ap-tool.romoland.k12.ca.us'
+  
+  # Resolve timeout for educational context
+  resolve_timeout: 5m
+
+# Alert routing tree
+route:
+  group_by: ['alertname', 'category', 'educational_impact']
+  group_wait: 30s
+  group_interval: 2m
+  repeat_interval: 4h
+  receiver: 'default-receiver'
+  
+  # Educational system specific routing
+  routes:
+    # FERPA Compliance - Highest Priority
+    - match:
+        category: compliance
+      receiver: 'ferpa-compliance-team'
+      group_wait: 10s
+      repeat_interval: 15m
+      routes:
+        - match:
+            severity: critical
+          receiver: 'ferpa-critical-alerts'
+          group_wait: 0s
+          repeat_interval: 5m
+
+    # Security Incidents - High Priority
+    - match:
+        category: security
+      receiver: 'security-team'
+      group_wait: 15s
+      repeat_interval: 30m
+      routes:
+        - match:
+            severity: critical
+          receiver: 'security-critical-alerts'
+          group_wait: 0s
+          repeat_interval: 10m
+        - match:
+            attack_type: brute_force
+          receiver: 'security-auth-alerts'
+        - match:
+            data_classification: confidential
+          receiver: 'student-data-security-alerts'
+
+    # Educational Impact - School Operations
+    - match:
+        educational_impact: high
+      receiver: 'school-administration'
+      group_wait: 20s
+      repeat_interval: 1h
+      routes:
+        - match_re:
+            time: '^(07|08|09|10|11|12|13|14|15).*'  # School hours 7 AM - 3 PM
+          receiver: 'school-hours-alerts'
+          repeat_interval: 30m
+
+    # System Performance - IT Operations
+    - match:
+        category: performance
+      receiver: 'devops-team'
+      group_wait: 60s
+      repeat_interval: 2h
+
+    # Infrastructure Issues
+    - match:
+        category: infrastructure
+      receiver: 'infrastructure-team'
+      group_wait: 90s
+      repeat_interval: 3h
+
+# Alert receivers (notification destinations)
+receivers:
+  # Default receiver for unmatched alerts
+  - name: 'default-receiver'
+    email_configs:
+      - to: 'devops-team@romoland.k12.ca.us'
+        subject: '[AP-Tool] {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Impact: {{ .Annotations.impact }}
+          Action Required: {{ .Annotations.action }}
+          
+          Severity: {{ .Labels.severity }}
+          Time: {{ .StartsAt.Format "2006-01-02 15:04:05" }} PST
+          
+          {{ if .Annotations.compliance_requirement }}
+          Compliance Requirement: {{ .Annotations.compliance_requirement }}
+          {{ end }}
+          
+          View in Grafana: https://monitoring.ap-tool.romoland.k12.ca.us/d/ap-tool-overview
+          {{ end }}
+        headers:
+          Subject: '[AP-Tool] System Alert'
+          X-Educational-System: 'AP-Tool-V1'
+          X-Priority: 'Normal'
+
+  # FERPA Compliance Team - Critical Priority
+  - name: 'ferpa-compliance-team'
+    email_configs:
+      - to: 'compliance-officer@romoland.k12.ca.us'
+        cc: 'cto@romoland.k12.ca.us,legal@romoland.k12.ca.us'
+        subject: '[FERPA ALERT] {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        body: |
+          🚨 FERPA COMPLIANCE ALERT 🚨
+          
+          {{ range .Alerts }}
+          VIOLATION TYPE: {{ .Annotations.summary }}
+          DESCRIPTION: {{ .Annotations.description }}
+          STUDENT DATA IMPACT: {{ .Annotations.impact }}
+          IMMEDIATE ACTION REQUIRED: {{ .Annotations.action }}
+          
+          Compliance Requirement: {{ .Annotations.compliance_requirement }}
+          Severity: {{ .Labels.severity }}
+          Data Classification: {{ .Labels.data_classification }}
+          Alert Time: {{ .StartsAt.Format "2006-01-02 15:04:05" }} PST
+          
+          This alert requires immediate attention to maintain FERPA compliance.
+          All student data access must be audited and secured.
+          
+          Investigation Dashboard: https://monitoring.ap-tool.romoland.k12.ca.us/d/ferpa-compliance
+          Security Logs: https://logs.ap-tool.romoland.k12.ca.us/app/discover#/
+          {{ end }}
+        headers:
+          Subject: '[FERPA CRITICAL] Student Data Privacy Alert'
+          X-Priority: 'High'
+          X-Educational-System: 'AP-Tool-V1'
+          X-Compliance-Alert: 'FERPA'
+    
+    # Slack notification for immediate response
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/FERPA_WEBHOOK_URL'
+        channel: '#ferpa-compliance-alerts'
+        title: '🚨 FERPA Compliance Alert'
+        text: |
+          {{ range .Alerts }}
+          **{{ .Annotations.summary }}**
+          
+          Description: {{ .Annotations.description }}
+          Impact: {{ .Annotations.impact }}
+          Action: {{ .Annotations.action }}
+          
+          Severity: `{{ .Labels.severity }}`
+          Time: {{ .StartsAt.Format "15:04:05 PST" }}
+          {{ end }}
+        color: 'danger'
+        send_resolved: true
+
+  # Critical FERPA Violations - Immediate Response
+  - name: 'ferpa-critical-alerts'
+    email_configs:
+      - to: 'compliance-officer@romoland.k12.ca.us'
+        cc: 'superintendent@romoland.k12.ca.us,cto@romoland.k12.ca.us'
+        subject: '[CRITICAL FERPA VIOLATION] Immediate Action Required'
+        body: |
+          🚨🚨🚨 CRITICAL FERPA VIOLATION DETECTED 🚨🚨🚨
+          
+          {{ range .Alerts }}
+          VIOLATION: {{ .Annotations.summary }}
+          DESCRIPTION: {{ .Annotations.description }}
+          STUDENT DATA AT RISK: {{ .Annotations.impact }}
+          
+          IMMEDIATE ACTIONS REQUIRED:
+          1. {{ .Annotations.action }}
+          2. Secure all affected student data
+          3. Document incident for compliance reporting
+          4. Notify affected parties if required by law
+          
+          Legal Requirement: {{ .Annotations.compliance_requirement }}
+          Alert Time: {{ .StartsAt.Format "2006-01-02 15:04:05" }} PST
+          
+          This is a CRITICAL alert requiring immediate response to prevent
+          further FERPA compliance violations and protect student privacy.
+          {{ end }}
+        headers:
+          Subject: '[CRITICAL] FERPA Violation - Immediate Response Required'
+          X-Priority: 'Urgent'
+          X-Compliance-Alert: 'FERPA-CRITICAL'
+    
+    # PagerDuty integration for 24/7 response
+    pagerduty_configs:
+      - routing_key: 'FERPA_CRITICAL_ROUTING_KEY'
+        description: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        details:
+          violation_type: '{{ range .Alerts }}{{ .Labels.alertname }}{{ end }}'
+          impact: '{{ range .Alerts }}{{ .Annotations.impact }}{{ end }}'
+          action_required: '{{ range .Alerts }}{{ .Annotations.action }}{{ end }}'
+          compliance_requirement: '{{ range .Alerts }}{{ .Annotations.compliance_requirement }}{{ end }}'
+
+  # Security Team Alerts
+  - name: 'security-team'
+    email_configs:
+      - to: 'security-team@romoland.k12.ca.us'
+        cc: 'devops-team@romoland.k12.ca.us'
+        subject: '[SECURITY] {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        body: |
+          🔒 SECURITY ALERT
+          
+          {{ range .Alerts }}
+          Security Issue: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Impact: {{ .Annotations.impact }}
+          Recommended Action: {{ .Annotations.action }}
+          
+          Severity: {{ .Labels.severity }}
+          Category: {{ .Labels.category }}
+          {{ if .Labels.attack_type }}Attack Type: {{ .Labels.attack_type }}{{ end }}
+          {{ if .Labels.data_classification }}Data Classification: {{ .Labels.data_classification }}{{ end }}
+          
+          Time: {{ .StartsAt.Format "2006-01-02 15:04:05" }} PST
+          
+          Security Dashboard: https://monitoring.ap-tool.romoland.k12.ca.us/d/security-overview
+          {{ end }}
+        headers:
+          X-Security-Alert: 'true'
+          X-Educational-System: 'AP-Tool-V1'
+
+  # School Administration - Business Hours
+  - name: 'school-administration'
+    email_configs:
+      - to: 'assistant-principals@romoland.k12.ca.us'
+        cc: 'it-coordinator@romoland.k12.ca.us'
+        subject: '[AP-Tool] System Issue Affecting School Operations'
+        body: |
+          📚 AP TOOL SYSTEM ALERT
+          
+          {{ range .Alerts }}
+          Issue: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Impact on School Operations: {{ .Annotations.impact }}
+          
+          Educational Impact Level: {{ .Labels.educational_impact }}
+          Severity: {{ .Labels.severity }}
+          
+          Estimated Resolution: {{ .Annotations.estimated_resolution | default "TBD" }}
+          Workaround Available: {{ .Annotations.workaround | default "None" }}
+          
+          Time: {{ .StartsAt.Format "2006-01-02 15:04:05" }} PST
+          
+          The IT team is working on resolving this issue. We will provide
+          updates every 30 minutes until resolution.
+          
+          System Status: https://status.ap-tool.romoland.k12.ca.us/
+          {{ end }}
+        headers:
+          X-Educational-Impact: 'true'
+          X-School-Operations: 'affected'
+
+  # School Hours High Priority Alerts
+  - name: 'school-hours-alerts'
+    email_configs:
+      - to: 'assistant-principals@romoland.k12.ca.us'
+        cc: 'front-office@romoland.k12.ca.us'
+        subject: '[URGENT] AP-Tool Issue During School Hours'
+        body: |
+          ⚠️ URGENT: SCHOOL HOURS SYSTEM ISSUE
+          
+          {{ range .Alerts }}
+          Issue: {{ .Annotations.summary }}
+          Impact: {{ .Annotations.impact }}
+          
+          This issue is occurring during school hours and may affect:
+          - Attendance tracking
+          - Recovery session scheduling
+          - Student intervention workflows
+          
+          Immediate Actions:
+          1. {{ .Annotations.action }}
+          2. Consider manual backup procedures
+          3. Communicate with teachers if needed
+          
+          Time: {{ .StartsAt.Format "15:04:05" }} PST
+          Estimated Resolution: {{ .Annotations.estimated_resolution | default "30 minutes" }}
+          {{ end }}
+    
+    # SMS alerts during school hours for critical issues
+    webhook_configs:
+      - url: 'https://sms-gateway.district.edu/send'
+        http_config:
+          basic_auth:
+            username: 'ap-tool-alerts'
+            password_file: '/etc/alertmanager/sms_password'
+        send_resolved: true
+
+  # DevOps Team - Technical Issues
+  - name: 'devops-team'
+    email_configs:
+      - to: 'devops-team@romoland.k12.ca.us'
+        subject: '[DevOps] {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        body: |
+          🔧 TECHNICAL ALERT
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Impact: {{ .Annotations.impact }}
+          Action: {{ .Annotations.action }}
+          
+          Labels:
+          {{ range .Labels.SortedPairs }}  {{ .Name }}: {{ .Value }}
+          {{ end }}
+          
+          Time: {{ .StartsAt.Format "2006-01-02 15:04:05" }} PST
+          
+          Monitoring: https://monitoring.ap-tool.romoland.k12.ca.us/
+          Logs: https://logs.ap-tool.romoland.k12.ca.us/
+          {{ end }}
+    
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/DEVOPS_WEBHOOK_URL'
+        channel: '#ap-tool-alerts'
+        title: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        text: |
+          {{ range .Alerts }}
+          **{{ .Annotations.summary }}**
+          
+          Impact: {{ .Annotations.impact }}
+          Action: {{ .Annotations.action }}
+          
+          Severity: `{{ .Labels.severity }}`
+          {{ end }}
+
+# Inhibition rules to prevent alert spam
+inhibit_rules:
+  # If FERPA violation is active, suppress lower-priority security alerts
+  - source_match:
+      category: 'compliance'
+      severity: 'critical'
+    target_match:
+      category: 'security'
+      severity: 'warning'
+    equal: ['educational_impact']
+
+  # If critical security alert is active, suppress performance alerts
+  - source_match:
+      category: 'security'
+      severity: 'critical'
+    target_match:
+      category: 'performance'
+    equal: ['instance']
+
+  # During maintenance windows, suppress infrastructure alerts
+  - source_match:
+      alertname: 'MaintenanceMode'
+    target_match_re:
+      category: 'infrastructure|performance'
+
+# Templates for reusable alert formatting
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'

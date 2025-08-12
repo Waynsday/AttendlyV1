@@ -1,0 +1,511 @@
+# CI/CD Pipeline for AP_Tool_V1
+# FERPA-compliant educational technology deployment
+# Implements security scanning, testing, and deployment automation
+
+name: 'CI/CD Pipeline'
+
+on:
+  push:
+    branches: [ main, develop, 'feat/**', 'fix/**', 'chore/**' ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run security scans daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+env:
+  NODE_VERSION: '20'
+  DOCKER_REGISTRY: 'attendly'
+  IMAGE_NAME: 'ap-tool-v1'
+  AWS_REGION: 'us-west-2'
+  TERRAFORM_VERSION: '1.5.0'
+
+jobs:
+  # ============================================================================
+  # Security and Compliance Checks
+  # ============================================================================
+  
+  security:
+    name: 'Security Scan'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    
+    steps:
+      - name: 'Checkout Code'
+        uses: actions/checkout@v4
+        with:
+          # Fetch full history for security analysis
+          fetch-depth: 0
+
+      - name: 'Setup Node.js'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 'Install Dependencies'
+        run: npm ci --only=production
+
+      - name: 'FERPA Compliance Check'
+        run: |
+          echo "Checking for FERPA compliance violations..."
+          # Check for References/ directory in git history
+          if git log --name-only --pretty=format: | grep -q "References/"; then
+            echo "ERROR: References/ directory found in git history - FERPA violation!"
+            exit 1
+          fi
+          # Check for hardcoded student data patterns
+          if grep -r -i "student.*id.*[0-9]\{6,\}" src/ --exclude-dir=tests; then
+            echo "ERROR: Potential hardcoded student IDs found - FERPA violation!"
+            exit 1
+          fi
+          echo "FERPA compliance check passed"
+
+      - name: 'Dependency Security Audit'
+        run: |
+          npm audit --audit-level=high
+          # Check for known vulnerabilities in dependencies
+          npx audit-ci --high
+
+      - name: 'CodeQL Analysis'
+        uses: github/codeql-action/init@v3
+        with:
+          languages: 'javascript,typescript'
+          config-file: ./.github/codeql/codeql-config.yml
+
+      - name: 'Build for Analysis'
+        run: npm run build
+
+      - name: 'Perform CodeQL Analysis'
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:javascript'
+
+      - name: 'SAST with Semgrep'
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/secrets
+            p/owasp-top-ten
+            p/javascript
+            p/typescript
+            p/react
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+      - name: 'Secret Scanning'
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          extra_args: --debug --only-verified
+
+      - name: 'Infrastructure Security Scan'
+        if: contains(github.event.head_commit.modified, 'terraform/')
+        run: |
+          # Install Checkov
+          pip install checkov
+          # Scan Terraform files
+          checkov -d terraform/ --framework terraform --check CKV_AWS_* --soft-fail
+          # Scan Docker files
+          checkov -f Dockerfile --framework dockerfile --soft-fail
+
+  # ============================================================================
+  # Code Quality and Testing
+  # ============================================================================
+  
+  test:
+    name: 'Test Suite'
+    runs-on: ubuntu-latest
+    needs: security
+    
+    strategy:
+      matrix:
+        node-version: ['18', '20']
+    
+    steps:
+      - name: 'Checkout Code'
+        uses: actions/checkout@v4
+
+      - name: 'Setup Node.js ${{ matrix.node-version }}'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: 'Install Dependencies'
+        run: npm ci
+
+      - name: 'Environment Validation'
+        run: npm run dev:validate
+
+      - name: 'Lint Code'
+        run: npm run lint
+
+      - name: 'Type Check'
+        run: npx tsc --noEmit
+
+      - name: 'Unit Tests'
+        run: npm run test:unit
+
+      - name: 'Integration Tests'
+        run: npm run test:integration
+        env:
+          NODE_ENV: test
+          TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+
+      - name: 'Coverage Check'
+        run: npm run test:coverage
+
+      - name: 'Security Tests'
+        run: npm run test:security
+
+      - name: 'Performance Tests'
+        run: npm run test:performance
+
+      - name: 'Accessibility Tests'
+        run: npm run test:a11y
+
+      - name: 'Mutation Testing'
+        if: github.event_name == 'pull_request'
+        run: npm run test:mutation:ci
+        env:
+          STRYKER_DASHBOARD_API_KEY: ${{ secrets.STRYKER_DASHBOARD_API_KEY }}
+
+      - name: 'Upload Test Results'
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.node-version }}
+          path: |
+            coverage/
+            test-results/
+            playwright-report/
+
+  # ============================================================================
+  # End-to-End Testing
+  # ============================================================================
+  
+  e2e:
+    name: 'E2E Tests'
+    runs-on: ubuntu-latest
+    needs: [security, test]
+    
+    steps:
+      - name: 'Checkout Code'
+        uses: actions/checkout@v4
+
+      - name: 'Setup Node.js'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 'Install Dependencies'
+        run: npm ci
+
+      - name: 'Install Playwright Browsers'
+        run: npx playwright install --with-deps
+
+      - name: 'Build Application'
+        run: npm run build
+
+      - name: 'Start Test Environment'
+        run: |
+          # Start application in background
+          npm start &
+          # Wait for application to be ready
+          npx wait-on http://localhost:3000/api/health --timeout 60000
+
+      - name: 'Run E2E Tests'
+        run: npm run test:e2e
+        env:
+          NODE_ENV: test
+          PLAYWRIGHT_HEADLESS: true
+
+      - name: 'Upload E2E Results'
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-results
+          path: |
+            playwright-report/
+            test-results/
+
+  # ============================================================================
+  # Docker Build and Push
+  # ============================================================================
+  
+  build:
+    name: 'Build & Push Docker Image'
+    runs-on: ubuntu-latest
+    needs: [security, test, e2e]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    
+    outputs:
+      image-tag: ${{ steps.image-tag.outputs.tag }}
+      image-digest: ${{ steps.build.outputs.digest }}
+    
+    steps:
+      - name: 'Checkout Code'
+        uses: actions/checkout@v4
+
+      - name: 'Set up Docker Buildx'
+        uses: docker/setup-buildx-action@v3
+
+      - name: 'Configure AWS Credentials'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 'Login to Amazon ECR'
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: 'Generate Image Tag'
+        id: image-tag
+        run: |
+          BRANCH=${GITHUB_REF#refs/heads/}
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          SHORT_SHA=${GITHUB_SHA:0:7}
+          TAG="${BRANCH}-${TIMESTAMP}-${SHORT_SHA}"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "IMAGE_TAG=${TAG}" >> $GITHUB_ENV
+
+      - name: 'Build and Push Image'
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}:${{ steps.image-tag.outputs.tag }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          labels: |
+            org.opencontainers.image.title=AP_Tool_V1
+            org.opencontainers.image.description=FERPA-compliant attendance management system
+            org.opencontainers.image.version=${{ steps.image-tag.outputs.tag }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.licenses=MIT
+            ferpa.compliant=true
+            security.scan.date=${{ github.run_id }}
+
+      - name: 'Container Security Scan'
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}:${{ steps.image-tag.outputs.tag }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: 'Upload Trivy Results'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # ============================================================================
+  # Infrastructure Deployment
+  # ============================================================================
+  
+  deploy-infrastructure:
+    name: 'Deploy Infrastructure'
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+      - name: 'Checkout Code'
+        uses: actions/checkout@v4
+
+      - name: 'Configure AWS Credentials'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 'Setup Terraform'
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: 'Terraform Init'
+        run: |
+          cd terraform
+          terraform init -backend-config="bucket=${{ secrets.TERRAFORM_STATE_BUCKET }}" \
+                        -backend-config="key=ap-tool-v1/terraform.tfstate" \
+                        -backend-config="region=${{ env.AWS_REGION }}" \
+                        -backend-config="dynamodb_table=${{ secrets.TERRAFORM_LOCK_TABLE }}"
+
+      - name: 'Terraform Plan'
+        run: |
+          cd terraform
+          terraform plan -var="app_image=${{ secrets.ECR_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.image-tag }}" \
+                        -var="environment=prod" \
+                        -out=tfplan
+
+      - name: 'Terraform Apply'
+        run: |
+          cd terraform
+          terraform apply -auto-approve tfplan
+
+  # ============================================================================
+  # Application Deployment
+  # ============================================================================
+  
+  deploy-application:
+    name: 'Deploy Application'
+    runs-on: ubuntu-latest
+    needs: [build, deploy-infrastructure]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+      - name: 'Checkout Code'
+        uses: actions/checkout@v4
+
+      - name: 'Configure AWS Credentials'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 'Update ECS Service'
+        run: |
+          # Get current task definition
+          TASK_DEFINITION=$(aws ecs describe-task-definition \
+            --task-definition ap-tool-v1-prod \
+            --query 'taskDefinition' \
+            --output json)
+          
+          # Update image in task definition
+          NEW_TASK_DEFINITION=$(echo $TASK_DEFINITION | jq --arg IMAGE "${{ secrets.ECR_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.image-tag }}" \
+            '.containerDefinitions[0].image = $IMAGE | del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.requiresAttributes) | del(.placementConstraints) | del(.compatibilities) | del(.registeredAt) | del(.registeredBy)')
+          
+          # Register new task definition
+          NEW_TASK_DEF_ARN=$(echo $NEW_TASK_DEFINITION | aws ecs register-task-definition \
+            --cli-input-json file:///dev/stdin \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          
+          # Update service
+          aws ecs update-service \
+            --cluster ap-tool-v1-prod \
+            --service ap-tool-v1-prod \
+            --task-definition $NEW_TASK_DEF_ARN
+
+      - name: 'Wait for Deployment'
+        run: |
+          aws ecs wait services-stable \
+            --cluster ap-tool-v1-prod \
+            --services ap-tool-v1-prod
+
+      - name: 'Health Check'
+        run: |
+          # Get load balancer URL from Terraform output
+          ALB_URL=$(aws elbv2 describe-load-balancers \
+            --names ap-tool-v1-prod-alb \
+            --query 'LoadBalancers[0].DNSName' \
+            --output text)
+          
+          # Wait for health check to pass
+          for i in {1..30}; do
+            if curl -f "https://${ALB_URL}/api/health"; then
+              echo "Health check passed"
+              break
+            fi
+            echo "Health check attempt $i failed, retrying..."
+            sleep 10
+          done
+
+  # ============================================================================
+  # Post-Deployment Testing
+  # ============================================================================
+  
+  smoke-tests:
+    name: 'Smoke Tests'
+    runs-on: ubuntu-latest
+    needs: [deploy-application]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: 'Checkout Code'
+        uses: actions/checkout@v4
+
+      - name: 'Setup Node.js'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 'Install Dependencies'
+        run: npm ci
+
+      - name: 'Run Smoke Tests'
+        run: |
+          # Run basic smoke tests against production
+          npm run test:smoke
+        env:
+          SMOKE_TEST_URL: ${{ secrets.PRODUCTION_URL }}
+
+      - name: 'Performance Baseline Check'
+        run: |
+          # Run lighthouse CI for performance monitoring
+          npx lhci autorun
+        env:
+          LHCI_BUILD_CONTEXT__CURRENT_HASH: ${{ github.sha }}
+          LHCI_BUILD_CONTEXT__CURRENT_BRANCH: ${{ github.ref_name }}
+
+  # ============================================================================
+  # Notification and Reporting
+  # ============================================================================
+  
+  notify:
+    name: 'Notify Deployment Status'
+    runs-on: ubuntu-latest
+    needs: [deploy-application, smoke-tests]
+    if: always() && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: 'Slack Notification'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          message: |
+            AP Tool V1 Deployment ${{ job.status }}
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            Image: ${{ needs.build.outputs.image-tag }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: 'Create GitHub Release'
+        if: success()
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.build.outputs.image-tag }}
+          release_name: Release ${{ needs.build.outputs.image-tag }}
+          body: |
+            ## Changes in this Release
+            - Automated deployment from commit ${{ github.sha }}
+            - Docker image: ${{ needs.build.outputs.image-tag }}
+            - Security scan passed ✅
+            - All tests passed ✅
+            - FERPA compliance verified ✅
+          draft: false
+          prerelease: false

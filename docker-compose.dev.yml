@@ -1,0 +1,128 @@
+version: '3.8'
+
+# SECURITY: Docker Compose configuration for FERPA-compliant development
+# Implements secure container practices to protect student data
+
+services:
+  # Next.js Application with security controls
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: attendly-app-dev
+    ports:
+      - "3000:3000"
+    volumes:
+      # SECURITY: Selective mounting to prevent References/ exposure
+      - ./src:/app/src:ro # Read-only source mounting
+      - ./public:/app/public:ro # Read-only public assets
+      - ./package.json:/app/package.json:ro
+      - ./package-lock.json:/app/package-lock.json:ro
+      - ./next.config.ts:/app/next.config.ts:ro
+      - ./tsconfig.json:/app/tsconfig.json:ro
+      - ./middleware.ts:/app/middleware.ts:ro
+      - ./scripts:/app/scripts:ro
+      # Writable directories for development
+      - nextjs-cache:/app/.next
+      - node-modules-cache:/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://attendly:attendly_dev@postgres:5432/attendly_dev
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      # SECURITY: FERPA compliance environment variables
+      - FERPA_COMPLIANCE_MODE=enabled
+      - STUDENT_DATA_PROTECTION=enabled
+      - SECURITY_LEVEL=OWASP_ASVS_L2
+      - REFERENCES_ACCESS_BLOCKED=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - attendly-network
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: attendly-postgres-dev
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=attendly
+      - POSTGRES_PASSWORD=attendly_dev
+      - POSTGRES_DB=attendly_dev
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U attendly -d attendly_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - attendly-network
+
+  # pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: attendly-pgadmin-dev
+    ports:
+      - "5050:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@attendly.local
+      - PGADMIN_DEFAULT_PASSWORD=attendly_dev
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - attendly-network
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: attendly-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - attendly-network
+
+  # Mailhog for email testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: attendly-mailhog-dev
+    ports:
+      - "1025:1025" # SMTP server
+      - "8025:8025" # Web UI
+    networks:
+      - attendly-network
+
+volumes:
+  postgres-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./docker-volumes/postgres
+  pgadmin-data:
+    driver: local  
+    driver_opts:
+      type: none
+      o: bind
+      device: ./docker-volumes/pgadmin
+  redis-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./docker-volumes/redis
+  nextjs-cache:
+    driver: local
+  node-modules-cache:
+    driver: local
+
+networks:
+  attendly-network:
+    driver: bridge

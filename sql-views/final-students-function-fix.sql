@@ -1,0 +1,137 @@
+-- Final fix for students function with correct data types
+-- Execute this in Supabase Dashboard SQL Editor
+
+-- Drop and recreate the function with proper types
+DROP FUNCTION IF EXISTS get_student_attendance_data CASCADE;
+
+CREATE OR REPLACE FUNCTION get_student_attendance_data(
+  p_school_id TEXT DEFAULT NULL,
+  p_grade_level INTEGER DEFAULT NULL,
+  p_tier TEXT DEFAULT NULL,
+  p_search TEXT DEFAULT NULL,
+  p_limit INTEGER DEFAULT 20,
+  p_offset INTEGER DEFAULT 0,
+  p_sort_column TEXT DEFAULT 'default',
+  p_sort_direction TEXT DEFAULT 'asc'
+) 
+RETURNS TABLE (
+  id UUID,
+  full_name TEXT,
+  grade_level INTEGER,
+  current_homeroom_teacher TEXT,
+  aeries_student_id TEXT,
+  attendance_rate NUMERIC,
+  absent_days BIGINT,
+  enrolled_days BIGINT,
+  present_days BIGINT,
+  risk_level TEXT,
+  tardies INTEGER,
+  school_name TEXT,
+  total_count BIGINT
+) 
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_total_count BIGINT;
+BEGIN
+  -- Get total count for pagination with UUID casting
+  SELECT COUNT(*)
+  INTO v_total_count
+  FROM students s
+  JOIN schools sch ON s.school_id = sch.id
+  WHERE s.is_active = true
+    AND (p_school_id IS NULL OR s.school_id = p_school_id::UUID)
+    AND (p_grade_level IS NULL OR s.grade_level = p_grade_level)
+    AND (p_search IS NULL OR 
+         LOWER(s.first_name || ' ' || s.last_name) LIKE '%' || LOWER(p_search) || '%' OR
+         LOWER(s.aeries_student_id) LIKE '%' || LOWER(p_search) || '%');
+
+  -- Return query with attendance calculations and UUID casting
+  RETURN QUERY
+  WITH student_attendance_stats AS (
+    SELECT 
+      s.id,
+      s.first_name || ' ' || s.last_name AS full_name,
+      s.grade_level,
+      s.current_homeroom_teacher,
+      s.aeries_student_id,
+      -- Calculate attendance metrics
+      COALESCE(
+        COUNT(ar.id) FILTER (WHERE ar.is_present = true) * 100.0 / 
+        NULLIF(COUNT(ar.id), 0), 
+        100.0
+      ) AS attendance_rate,
+      COUNT(ar.id) FILTER (WHERE ar.is_present = false) AS absent_days,
+      COUNT(ar.id) AS enrolled_days,
+      COUNT(ar.id) FILTER (WHERE ar.is_present = true) AS present_days,
+      -- Determine risk level based on attendance rate
+      CASE 
+        WHEN COALESCE(
+          COUNT(ar.id) FILTER (WHERE ar.is_present = true) * 100.0 / 
+          NULLIF(COUNT(ar.id), 0), 
+          100.0
+        ) >= 95 THEN 'low'::TEXT
+        WHEN COALESCE(
+          COUNT(ar.id) FILTER (WHERE ar.is_present = true) * 100.0 / 
+          NULLIF(COUNT(ar.id), 0), 
+          100.0
+        ) >= 90 THEN 'medium'::TEXT
+        ELSE 'high'::TEXT
+      END AS risk_level,
+      COALESCE(SUM(ar.tardy_count), 0) AS tardies,
+      sch.school_name
+    FROM students s
+    JOIN schools sch ON s.school_id = sch.id
+    LEFT JOIN attendance_records ar ON s.id = ar.student_id 
+      AND ar.attendance_date >= '2024-08-15' 
+      AND ar.attendance_date <= '2025-06-12'
+    WHERE s.is_active = true
+      AND (p_school_id IS NULL OR s.school_id = p_school_id::UUID)
+      AND (p_grade_level IS NULL OR s.grade_level = p_grade_level)
+      AND (p_search IS NULL OR 
+           LOWER(s.first_name || ' ' || s.last_name) LIKE '%' || LOWER(p_search) || '%' OR
+           LOWER(s.aeries_student_id) LIKE '%' || LOWER(p_search) || '%')
+    GROUP BY s.id, s.first_name, s.last_name, s.grade_level, 
+             s.current_homeroom_teacher, s.aeries_student_id, sch.school_name
+  )
+  SELECT 
+    sas.id,
+    sas.full_name::TEXT,
+    sas.grade_level,
+    COALESCE(sas.current_homeroom_teacher, 'Staff')::TEXT,
+    sas.aeries_student_id::TEXT,
+    ROUND(sas.attendance_rate, 1),
+    sas.absent_days,
+    sas.enrolled_days,
+    sas.present_days,
+    sas.risk_level::TEXT,
+    sas.tardies,
+    sas.school_name::TEXT,
+    v_total_count
+  FROM student_attendance_stats sas
+  WHERE (p_tier IS NULL OR 
+         (p_tier = 'Tier 1' AND sas.risk_level = 'low') OR
+         (p_tier = 'Tier 2' AND sas.risk_level = 'medium') OR
+         (p_tier = 'Tier 3' AND sas.risk_level = 'high'))
+  ORDER BY 
+    CASE 
+      WHEN p_sort_column = 'name' AND p_sort_direction = 'asc' THEN sas.full_name
+      WHEN p_sort_column = 'attendanceRate' AND p_sort_direction = 'asc' THEN sas.attendance_rate::TEXT
+      WHEN p_sort_column = 'grade' AND p_sort_direction = 'asc' THEN sas.grade_level::TEXT
+      ELSE sas.full_name
+    END ASC,
+    CASE 
+      WHEN p_sort_column = 'name' AND p_sort_direction = 'desc' THEN sas.full_name
+      WHEN p_sort_column = 'attendanceRate' AND p_sort_direction = 'desc' THEN sas.attendance_rate::TEXT
+      WHEN p_sort_column = 'grade' AND p_sort_direction = 'desc' THEN sas.grade_level::TEXT
+      ELSE NULL
+    END DESC
+  LIMIT p_limit
+  OFFSET p_offset;
+END;
+$$;
+
+-- Grant execute permissions
+GRANT EXECUTE ON FUNCTION get_student_attendance_data TO authenticated;
+GRANT EXECUTE ON FUNCTION get_student_attendance_data TO service_role;

@@ -1,0 +1,71 @@
+# SECURITY: FERPA-Compliant Development Dockerfile for AP_Tool_V1
+# Implements secure container practices for educational data protection
+# Follows OWASP Container Security Top 10 guidelines
+
+FROM node:20-alpine AS base
+
+# SECURITY: Install only essential tools, minimize attack surface
+RUN apk add --no-cache libc6-compat git python3 make g++ \
+    && rm -rf /var/cache/apk/* \
+    && addgroup -g 1001 -S nodejs \
+    && adduser -S nextjs -u 1001
+
+# Set working directory
+WORKDIR /app
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Copy package files
+COPY package.json pnpm-lock.yaml* package-lock.json* yarn.lock* ./
+
+# Install dependencies
+RUN if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; \
+    elif [ -f package-lock.json ]; then npm ci; \
+    elif [ -f yarn.lock ]; then yarn install --frozen-lockfile; \
+    else npm install; fi
+
+# SECURITY: Selective copy to prevent References/ directory exposure
+COPY package*.json ./
+COPY pnpm-lock.yaml* yarn.lock* ./
+COPY src/ ./src/
+COPY public/ ./public/
+COPY next* ./
+COPY tsconfig.json ./
+COPY middleware.ts ./
+COPY scripts/ ./scripts/
+# CRITICAL: Never copy References/ directory with student data
+# COPY References/ - EXPLICITLY EXCLUDED FOR FERPA COMPLIANCE
+
+# Create necessary directories
+RUN mkdir -p /app/.next /app/node_modules/.cache
+
+# SECURITY: Set proper permissions and create secure directories  
+RUN chown -R nextjs:nodejs /app \
+    && mkdir -p /app/.next /app/node_modules/.cache \
+    && chown -R nextjs:nodejs /app/.next /app/node_modules/.cache
+
+# SECURITY: Switch to non-root user for container security
+USER nextjs
+
+# Expose development port
+EXPOSE 3000
+
+# SECURITY: Secure environment variables for FERPA compliance
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV CHOKIDAR_USEPOLLING=true
+ENV WATCHPACK_POLLING=true
+ENV FERPA_COMPLIANCE_MODE=enabled
+ENV STUDENT_DATA_PROTECTION=enabled
+ENV REFERENCES_ACCESS_BLOCKED=true
+
+# SECURITY: Prevent access to sensitive directories
+ENV REFERENCES_DIR_BLOCKED=true
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/api/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"
+
+# Start development server
+CMD ["pnpm", "dev"]

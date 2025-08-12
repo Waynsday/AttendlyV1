@@ -1,0 +1,131 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Attendly Brand Design System */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    /* Attendly Brand Colors - Light Theme */
+    --background: 244 245 247; /* #F4F5F7 - Light gray background */
+    --foreground: 218.8 52.4% 22.2%; /* #283849 - Dark blue-gray text */
+    
+    --muted: 244 245 247; /* #F4F5F7 - Light gray for muted elements */
+    --muted-foreground: 218.8 30% 50%; /* Lighter version of foreground */
+    
+    --popover: 0 0% 100%; /* #FFFFFF - White */
+    --popover-foreground: 218.8 52.4% 22.2%;
+    
+    --card: 0 0% 100%; /* #FFFFFF - White cards */
+    --card-foreground: 218.8 52.4% 22.2%;
+    
+    /* Attendly Primary Brand Colors */
+    --primary: 218.8 52.4% 22.2%; /* #283849 - Charcoal blue */
+    --primary-foreground: 0 0% 100%; /* White text on primary */
+    
+    --secondary: 218.8 30% 60%; /* Lighter version of primary */
+    --secondary-foreground: 218.8 52.4% 22.2%;
+    
+    /* Attendly Signature Yellow */
+    --accent: 56 100% 76%; /* #FFF361 - Bright yellow */
+    --accent-foreground: 215.3 6.7% 6.7%; /* #101011 - Near black */
+    
+    --border: 218.8 15% 85%; /* Light border color */
+    --input: 244 245 247; /* Light input background */
+    --ring: 56 100% 76%; /* Yellow focus ring */
+    --radius: 0.75rem; /* 12px - Attendly's border radius */
+    
+    /* Educational Data Tier Colors */
+    --tier-1: 142 71% 45%;  /* #22c55e - Success/Good attendance */
+    --tier-2: 43 96% 56%;   /* #facc15 - Warning/At-risk */
+    --tier-3: 0 84% 60%;    /* #ef4444 - Error/Critical */
+    
+    /* Additional Attendly Colors */
+    --charcoal: 215.3 6.7% 6.7%; /* #101011 - Dark charcoal */
+    --slate-blue: 218.8 38% 34%; /* #364959 - Medium slate blue */
+    
+    /* Typography Scale (matching Attendly) */
+    --font-size-xs: 0.75rem;   /* 12px */
+    --font-size-sm: 0.875rem;  /* 14px */
+    --font-size-base: 1rem;    /* 16px */
+    --font-size-lg: 1.125rem;  /* 18px */
+    --font-size-xl: 1.25rem;   /* 20px */
+    --font-size-2xl: 1.5rem;   /* 24px */
+    --font-size-3xl: 3rem;     /* 48px - H1 */
+    --font-size-4xl: 3.375rem; /* 54px - Display */
+    
+    /* Spacing Scale (8px grid) */
+    --spacing-1: 0.125rem;  /* 2px */
+    --spacing-2: 0.25rem;   /* 4px */
+    --spacing-3: 0.5rem;    /* 8px */
+    --spacing-4: 0.75rem;   /* 12px */
+    --spacing-5: 1rem;      /* 16px */
+    --spacing-6: 1.5rem;    /* 24px */
+    --spacing-8: 2rem;      /* 32px */
+    --spacing-10: 2.5rem;   /* 40px */
+    --spacing-12: 3rem;     /* 48px */
+    --spacing-16: 4rem;     /* 64px */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground font-medium;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Attendly Typography Hierarchy */
+  h1 {
+    @apply text-4xl font-medium text-charcoal-900 leading-tight;
+    font-size: var(--font-size-3xl);
+    line-height: 1.2;
+  }
+  
+  h2 {
+    @apply text-2xl font-medium text-charcoal-900;
+    font-size: var(--font-size-2xl);
+    line-height: 1.3;
+  }
+  
+  h3 {
+    @apply text-xl font-medium text-charcoal-900;
+    line-height: 1.4;
+  }
+  
+  p {
+    @apply text-base text-foreground;
+    line-height: 1.6;
+  }
+  
+  /* Base component improvements for educational data */
+  .attendance-card {
+    @apply bg-card border border-border rounded-xl p-6 shadow-sm;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .attendance-card:hover {
+    @apply shadow-md;
+    transform: translateY(-1px);
+  }
+  
+  /* Tier-specific styling for educational metrics */
+  .tier-1 {
+    @apply border-l-4 border-l-green-500;
+  }
+  
+  .tier-2 {
+    @apply border-l-4 border-l-yellow-500;
+  }
+  
+  .tier-3 {
+    @apply border-l-4 border-l-red-500;
+  }
+}
