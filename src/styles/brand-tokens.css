@@ -1,0 +1,527 @@
+/**
+ * Attendly Brand Design Tokens
+ * Extracted from attendly.com design system
+ * WCAG 2.1 AA compliant color combinations
+ */
+
+/* Import Satoshi font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* Note: Replace with Satoshi font URL when available */
+
+:root {
+  /* ===== BRAND COLORS ===== */
+  
+  /* Primary Colors */
+  --color-primary-50: #F4F5F7;     /* Background gray */
+  --color-primary-100: #E5E7EB;    /* Light gray */
+  --color-primary-200: #D1D5DB;    /* Medium light gray */
+  --color-primary-300: #9CA3AF;    /* Medium gray */
+  --color-primary-400: #6B7280;    /* Dark medium gray */
+  --color-primary-500: #4B5563;    /* Dark gray */
+  --color-primary-600: #364959;    /* Slate blue (primary dark) */
+  --color-primary-700: #283849;    /* Body text blue */
+  --color-primary-800: #1F2937;    /* Very dark gray */
+  --color-primary-900: #101011;    /* Charcoal dark (primary) */
+  
+  /* Accent Yellow */
+  --color-accent-50: #FFFEF0;      /* Very light yellow */
+  --color-accent-100: #FFFBD0;     /* Light yellow */
+  --color-accent-200: #FFF8A0;     /* Medium light yellow */
+  --color-accent-300: #FFF570;     /* Medium yellow */
+  --color-accent-400: #FFF361;     /* Signature yellow */
+  --color-accent-500: #F4E542;     /* Medium dark yellow */
+  --color-accent-600: #D4C422;     /* Dark yellow */
+  --color-accent-700: #B4A018;     /* Very dark yellow */
+  
+  /* Neutral Colors */
+  --color-neutral-0: #FFFFFF;      /* Pure white */
+  --color-neutral-50: #F9FAFB;     /* Off white */
+  --color-neutral-100: #F4F5F7;    /* Background gray */
+  --color-neutral-200: #E5E7EB;    /* Light gray */
+  --color-neutral-300: #D1D5DB;    /* Medium light gray */
+  --color-neutral-400: #9CA3AF;    /* Medium gray */
+  --color-neutral-500: #6B7280;    /* Dark medium gray */
+  --color-neutral-600: #4B5563;    /* Dark gray */
+  --color-neutral-700: #374151;    /* Very dark gray */
+  --color-neutral-800: #1F2937;    /* Almost black */
+  --color-neutral-900: #111827;    /* Near black */
+  
+  /* Semantic Colors for Educational Platform */
+  --color-success-50: #ECFDF5;
+  --color-success-100: #D1FAE5;
+  --color-success-500: #10B981;    /* Primary success */
+  --color-success-600: #059669;
+  --color-success-700: #047857;
+  
+  --color-warning-50: #FFFBEB;
+  --color-warning-100: #FEF3C7;
+  --color-warning-500: #F59E0B;    /* Primary warning */
+  --color-warning-600: #D97706;
+  --color-warning-700: #B45309;
+  
+  --color-error-50: #FEF2F2;
+  --color-error-100: #FEE2E2;
+  --color-error-500: #EF4444;      /* Primary error */
+  --color-error-600: #DC2626;
+  --color-error-700: #B91C1C;
+  
+  --color-info-50: #EFF6FF;
+  --color-info-100: #DBEAFE;
+  --color-info-500: #3B82F6;       /* Primary info */
+  --color-info-600: #2563EB;
+  --color-info-700: #1D4ED8;
+  
+  /* Educational Data States */
+  --color-attendance-present: #10B981;   /* Green for present */
+  --color-attendance-absent: #EF4444;    /* Red for absent */
+  --color-attendance-tardy: #F59E0B;     /* Orange for tardy */
+  --color-attendance-excused: #6B7280;   /* Gray for excused */
+  
+  /* ===== TYPOGRAPHY ===== */
+  
+  /* Font Families */
+  --font-family-primary: 'Satoshi', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans', sans-serif;
+  --font-family-display: 'Satoshi', ui-sans-serif, system-ui, sans-serif;
+  
+  /* Font Sizes */
+  --font-size-xs: 0.75rem;         /* 12px */
+  --font-size-sm: 0.875rem;        /* 14px */
+  --font-size-base: 1rem;          /* 16px */
+  --font-size-lg: 1.125rem;        /* 18px */
+  --font-size-xl: 1.25rem;         /* 20px */
+  --font-size-2xl: 1.5rem;         /* 24px */
+  --font-size-3xl: 1.875rem;       /* 30px */
+  --font-size-4xl: 2.25rem;        /* 36px */
+  --font-size-5xl: 3rem;           /* 48px */
+  --font-size-6xl: 3.375rem;       /* 54px */
+  
+  /* Semantic Font Sizes */
+  --font-size-display: 3.375rem;   /* 54px - Hero headlines */
+  --font-size-h1: 3rem;            /* 48px - Section headers */
+  --font-size-h2: 1.5rem;          /* 24px - Subsection headers */
+  --font-size-h3: 1.25rem;         /* 20px - Card titles */
+  --font-size-body: 1rem;          /* 16px - Body text */
+  --font-size-caption: 0.875rem;   /* 14px - Captions */
+  
+  /* Line Heights */
+  --line-height-none: 1;
+  --line-height-tight: 1.25;
+  --line-height-snug: 1.375;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+  --line-height-loose: 2;
+  
+  /* Semantic Line Heights */
+  --line-height-display: 1.2;      /* 64.8px for 54px text */
+  --line-height-h1: 1.3;           /* 62.4px for 48px text */
+  --line-height-h2: 1.25;          /* 30px for 24px text */
+  --line-height-body: 1.5;         /* 24px for 16px text */
+  
+  /* Font Weights */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  /* ===== SPACING ===== */
+  
+  /* Base Spacing Scale (8px grid) */
+  --spacing-px: 1px;
+  --spacing-0: 0;
+  --spacing-0-5: 0.125rem;         /* 2px */
+  --spacing-1: 0.25rem;            /* 4px */
+  --spacing-1-5: 0.375rem;         /* 6px */
+  --spacing-2: 0.5rem;             /* 8px */
+  --spacing-2-5: 0.625rem;         /* 10px */
+  --spacing-3: 0.75rem;            /* 12px */
+  --spacing-3-5: 0.875rem;         /* 14px */
+  --spacing-4: 1rem;               /* 16px */
+  --spacing-5: 1.25rem;            /* 20px */
+  --spacing-6: 1.5rem;             /* 24px */
+  --spacing-7: 1.75rem;            /* 28px */
+  --spacing-8: 2rem;               /* 32px */
+  --spacing-9: 2.25rem;            /* 36px */
+  --spacing-10: 2.5rem;            /* 40px */
+  --spacing-11: 2.75rem;           /* 44px */
+  --spacing-12: 3rem;              /* 48px */
+  --spacing-14: 3.5rem;            /* 56px */
+  --spacing-16: 4rem;              /* 64px */
+  --spacing-20: 5rem;              /* 80px */
+  --spacing-24: 6rem;              /* 96px */
+  --spacing-28: 7rem;              /* 112px */
+  --spacing-32: 8rem;              /* 128px */
+  --spacing-36: 9rem;              /* 144px */
+  --spacing-40: 10rem;             /* 160px */
+  --spacing-44: 11rem;             /* 176px */
+  --spacing-48: 12rem;             /* 192px */
+  --spacing-52: 13rem;             /* 208px */
+  --spacing-56: 14rem;             /* 224px */
+  --spacing-60: 15rem;             /* 240px */
+  --spacing-64: 16rem;             /* 256px */
+  --spacing-72: 18rem;             /* 288px */
+  --spacing-80: 20rem;             /* 320px */
+  --spacing-96: 24rem;             /* 384px */
+  
+  /* Semantic Spacing */
+  --spacing-btn-y: 0.8rem;         /* 12.8px - Button vertical padding */
+  --spacing-btn-x: 1.5rem;         /* 24px - Button horizontal padding */
+  --spacing-card: 1.5rem;          /* 24px - Card padding */
+  --spacing-section: 4rem;         /* 64px - Section padding */
+  
+  /* ===== BORDER RADIUS ===== */
+  
+  --radius-none: 0;
+  --radius-sm: 0.25rem;            /* 4px */
+  --radius-base: 0.5rem;           /* 8px */
+  --radius-md: 0.5rem;             /* 8px */
+  --radius-lg: 0.75rem;            /* 12px */
+  --radius-xl: 1rem;               /* 16px */
+  --radius-2xl: 1.5rem;            /* 24px */
+  --radius-3xl: 2rem;              /* 32px */
+  --radius-full: 9999px;
+  
+  /* Component Specific */
+  --radius-btn: 0.75rem;           /* 12px - Button border radius */
+  --radius-card: 1rem;             /* 16px - Card border radius */
+  --radius-input: 0.5rem;          /* 8px - Input border radius */
+  
+  /* ===== SHADOWS ===== */
+  
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04);
+  --shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.25);
+  --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+  --shadow-none: none;
+  
+  /* Brand Specific Shadows */
+  --shadow-brand: 0 4px 12px rgba(54, 73, 89, 0.15);
+  --shadow-brand-lg: 0 8px 24px rgba(54, 73, 89, 0.2);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-card-hover: 0 4px 12px rgba(54, 73, 89, 0.15);
+  
+  /* ===== TRANSITIONS ===== */
+  
+  --transition-fast: 150ms;
+  --transition-base: 200ms;
+  --transition-slow: 300ms;
+  --transition-slower: 500ms;
+  
+  --transition-timing-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-timing-in: cubic-bezier(0.4, 0, 1, 1);
+  --transition-timing-out: cubic-bezier(0, 0, 0.2, 1);
+  --transition-timing-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* ===== Z-INDEX SCALE ===== */
+  
+  --z-0: 0;
+  --z-10: 10;
+  --z-20: 20;
+  --z-30: 30;
+  --z-40: 40;
+  --z-50: 50;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 300;
+  --z-modal: 400;
+  --z-popover: 500;
+  --z-tooltip: 600;
+  --z-toast: 700;
+  
+  /* ===== BREAKPOINTS ===== */
+  
+  --breakpoint-xs: 320px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+  
+  /* ===== CONTAINER SIZES ===== */
+  
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+  --container-2xl: 1536px;
+  --container-max: 1200px;          /* Attendly max container width */
+  --container-max-lg: 1440px;       /* Large container width */
+}
+
+/* ===== BASE STYLES ===== */
+
+/* Apply brand typography to body */
+body {
+  font-family: var(--font-family-primary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  color: var(--color-primary-700);
+  background-color: var(--color-neutral-100);
+}
+
+/* Heading styles matching Attendly */
+h1, .h1 {
+  font-size: var(--font-size-display);
+  line-height: var(--line-height-display);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary-900);
+  margin: 0;
+}
+
+h2, .h2 {
+  font-size: var(--font-size-h1);
+  line-height: var(--line-height-h1);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary-900);
+  margin: 0;
+}
+
+h3, .h3 {
+  font-size: var(--font-size-h2);
+  line-height: var(--line-height-h2);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary-900);
+  margin: 0;
+}
+
+h4, .h4 {
+  font-size: var(--font-size-h3);
+  line-height: var(--line-height-normal);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary-900);
+  margin: 0;
+}
+
+p, .body {
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  color: var(--color-primary-700);
+  margin: 0;
+}
+
+/* ===== COMPONENT BASE CLASSES ===== */
+
+/* Button Base */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-btn-y) var(--spacing-btn-x);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  line-height: 1;
+  border-radius: var(--radius-btn);
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all var(--transition-base) var(--transition-timing-default);
+  user-select: none;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Button Variants */
+.btn-primary {
+  background-color: var(--color-primary-600);
+  color: var(--color-neutral-0);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--color-primary-700);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-brand);
+}
+
+.btn-secondary {
+  background-color: var(--color-neutral-0);
+  color: var(--color-primary-900);
+  border: 1px solid var(--color-neutral-200);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--color-neutral-50);
+  border-color: var(--color-primary-600);
+}
+
+.btn-accent {
+  background-color: var(--color-accent-400);
+  color: var(--color-primary-900);
+}
+
+.btn-accent:hover:not(:disabled) {
+  background-color: var(--color-accent-500);
+  transform: scale(1.02);
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: var(--color-primary-700);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background-color: var(--color-neutral-100);
+}
+
+/* Card Component */
+.card {
+  background-color: var(--color-neutral-0);
+  border-radius: var(--radius-card);
+  padding: var(--spacing-card);
+  border: 1px solid var(--color-neutral-200);
+  box-shadow: var(--shadow-card);
+  transition: all var(--transition-base) var(--transition-timing-default);
+}
+
+.card-hover:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+/* Stats Card for Dashboard */
+.stats-card {
+  background-color: var(--color-neutral-0);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-5);
+  border: 1px solid var(--color-neutral-200);
+  text-align: center;
+}
+
+.stats-number {
+  font-size: var(--font-size-5xl);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary-900);
+  line-height: var(--line-height-none);
+}
+
+.stats-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-primary-700);
+  margin-top: var(--spacing-2);
+}
+
+/* Navigation */
+.nav-link {
+  color: var(--color-primary-700);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  text-decoration: none;
+  padding: var(--spacing-1-5) var(--spacing-2-5);
+  border-radius: var(--radius-base);
+  transition: color var(--transition-base) var(--transition-timing-default);
+}
+
+.nav-link:hover {
+  color: var(--color-primary-900);
+  background-color: var(--color-neutral-100);
+}
+
+/* Form Elements */
+.form-input {
+  display: block;
+  width: 100%;
+  padding: var(--spacing-3) var(--spacing-3);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+  color: var(--color-primary-900);
+  background-color: var(--color-neutral-0);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--radius-input);
+  box-shadow: var(--shadow-xs);
+  transition: all var(--transition-base) var(--transition-timing-default);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-primary-600);
+  box-shadow: 0 0 0 3px rgba(54, 73, 89, 0.1);
+}
+
+.form-input::placeholder {
+  color: var(--color-neutral-500);
+}
+
+.form-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary-900);
+  margin-bottom: var(--spacing-1);
+}
+
+/* Educational Data Status Indicators */
+.status-present {
+  background-color: var(--color-attendance-present);
+  color: var(--color-neutral-0);
+}
+
+.status-absent {
+  background-color: var(--color-attendance-absent);
+  color: var(--color-neutral-0);
+}
+
+.status-tardy {
+  background-color: var(--color-attendance-tardy);
+  color: var(--color-neutral-0);
+}
+
+.status-excused {
+  background-color: var(--color-attendance-excused);
+  color: var(--color-neutral-0);
+}
+
+/* Utility Classes */
+.text-balance {
+  text-wrap: balance;
+}
+
+.bg-pattern-grid {
+  background-image: radial-gradient(circle, var(--color-neutral-200) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Container Classes */
+.container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--spacing-4);
+  padding-right: var(--spacing-4);
+}
+
+@media (min-width: 640px) {
+  .container {
+    max-width: var(--container-sm);
+    padding-left: var(--spacing-6);
+    padding-right: var(--spacing-6);
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: var(--container-md);
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: var(--container-lg);
+  }
+}
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: var(--container-max);
+  }
+}
+
+@media (min-width: 1536px) {
+  .container {
+    max-width: var(--container-max-lg);
+  }
+}

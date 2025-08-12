@@ -1,0 +1,24 @@
+{
+  "name": "ap-tool-aeries-sync",
+  "version": "1.0.0",
+  "description": "Aeries API sync scripts for AP Tool V1",
+  "main": "aeries-sync.js",
+  "scripts": {
+    "sync": "node aeries-sync.js",
+    "sync:students": "node aeries-sync.js --students",
+    "sync:attendance": "node aeries-sync.js --attendance",
+    "sync:all": "node aeries-sync.js --all"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.55.0",
+    "csv-parser": "^3.2.0",
+    "dotenv": "^16.6.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
