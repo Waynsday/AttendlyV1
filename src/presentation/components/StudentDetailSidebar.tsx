@@ -11,6 +11,7 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { cn } from '../utils/cn';
 import { useStudentAttendanceDetails } from '../hooks/useStudentAttendanceDetails';
+import { IReadyHistoryCard } from './IReadyHistoryCard';
 
 // Student detailed data interface - made fields optional to handle basic StudentData
 interface StudentDetail {
@@ -344,6 +345,12 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
               </CardContent>
             </Card>
           )}
+
+          {/* iReady Assessment History */}
+          <IReadyHistoryCard 
+            studentId={student.id}
+            className="border-2 border-primary shadow-lg"
+          />
 
           {/* Intervention History */}
           {student.interventions && student.interventions.length > 0 && (

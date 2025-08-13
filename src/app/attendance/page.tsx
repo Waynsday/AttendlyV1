@@ -83,6 +83,8 @@ const columns: Column[] = [
   { key: 'attendanceRate', label: 'Attendance %', sortable: true },
   { key: 'absences', label: 'Absences', sortable: true },
   { key: 'tardies', label: 'Tardies', sortable: true },
+  { key: 'ireadyElaScore', label: 'iReady ELA', sortable: true, className: 'min-w-32' },
+  { key: 'ireadyMathScore', label: 'iReady Math', sortable: true, className: 'min-w-32' },
   { key: 'tier', label: 'Risk Level', sortable: false },
   { key: 'lastIntervention', label: 'Latest Intervention', sortable: false },
 ];
@@ -162,7 +164,16 @@ export default function AttendancePage() {
     setFilters({ ...filters, grade });
   };
 
-  const handleTierChange = (tier: string) => {
+  const handleRiskLevelChange = (riskLevel: string) => {
+    // Map risk level to tier values that the API expects
+    let tier = 'all';
+    if (riskLevel !== 'all') {
+      switch(riskLevel) {
+        case 'low': tier = '1'; break;
+        case 'medium': tier = '2'; break;
+        case 'high': tier = '3'; break;
+      }
+    }
     setFilters({ ...filters, tier });
   };
 
@@ -238,7 +249,7 @@ export default function AttendancePage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-primary">Student Attendance Details</h1>
             <p className="text-muted-foreground">
-              Monitor student attendance rates, risk tier assignments, and intervention history
+              Monitor student attendance rates, risk level assessments, and intervention history
             </p>
           </div>
 
@@ -297,18 +308,22 @@ export default function AttendancePage() {
                   </select>
                 </div>
                 
-                {/* Tier Selection */}
+                {/* Risk Level Selection */}
                 <div className="flex items-center space-x-2">
-                  <label className="text-sm font-medium text-gray-700">Tier:</label>
+                  <label className="text-sm font-medium text-gray-700">Risk Level:</label>
                   <select
-                    value={filters.tier || 'all'}
-                    onChange={(e) => handleTierChange(e.target.value)}
+                    value={
+                      filters.tier === '1' ? 'low' :
+                      filters.tier === '2' ? 'medium' :
+                      filters.tier === '3' ? 'high' : 'all'
+                    }
+                    onChange={(e) => handleRiskLevelChange(e.target.value)}
                     className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                   >
-                    <option value="all">All Tiers</option>
-                    <option value="1">Tier 1</option>
-                    <option value="2">Tier 2</option>
-                    <option value="3">Tier 3</option>
+                    <option value="all">All Risk Levels</option>
+                    <option value="low">Low Risk</option>
+                    <option value="medium">Medium Risk</option>
+                    <option value="high">High Risk</option>
                   </select>
                 </div>
 
@@ -380,7 +395,7 @@ export default function AttendancePage() {
                 </Button>
                 
                 <span className="text-sm text-gray-700">
-                  Page {currentPage} of {pagination.totalPages}
+                  Page {currentPage} of {Math.max(1, pagination.totalPages)}
                 </span>
                 
                 <Button
@@ -495,6 +510,30 @@ export default function AttendancePage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
                           {student.tardies || 0}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {student.ireadyElaScore ? (
+                            <div>
+                              <div className="text-sm font-medium text-primary">{student.ireadyElaScore}</div>
+                              {student.ireadyElaPlacement && (
+                                <div className="text-xs text-muted-foreground">{student.ireadyElaPlacement}</div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">No data</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {student.ireadyMathScore ? (
+                            <div>
+                              <div className="text-sm font-medium text-primary">{student.ireadyMathScore}</div>
+                              {student.ireadyMathPlacement && (
+                                <div className="text-xs text-muted-foreground">{student.ireadyMathPlacement}</div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">No data</span>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <TierBadge tier={student.tier} />

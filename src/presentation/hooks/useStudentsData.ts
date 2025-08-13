@@ -21,6 +21,13 @@ export interface StudentData {
   interventionDate?: string;
   school?: string;  
   schoolName?: string;
+  // iReady scores
+  ireadyElaScore?: number;
+  ireadyElaPlacement?: string;
+  ireadyElaDate?: string;
+  ireadyMathScore?: number;
+  ireadyMathPlacement?: string;
+  ireadyMathDate?: string;
 }
 
 export interface StudentsFilters {

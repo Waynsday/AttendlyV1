@@ -17,7 +17,7 @@ export async function GET(
 
     console.log(`🔍 Fetching data for student ${studentId}`);
 
-    // Get student data from the student_attendance_summary view
+    // Get student data from the student_attendance_summary view (now includes iReady data)
     const { data: student, error } = await supabase
       .from('student_attendance_summary')
       .select(`
@@ -33,6 +33,12 @@ export async function GET(
         present_days,
         tardies,
         school_id,
+        iready_ela_score,
+        iready_ela_placement,
+        iready_ela_date,
+        iready_math_score,
+        iready_math_placement,
+        iready_math_date,
         schools!inner(
           id,
           school_name
@@ -97,16 +103,26 @@ export async function GET(
       tier,
       lastAbsenceDate: transformedHistory.find(h => h.status === 'absent')?.date || '2024-08-15',
       attendanceHistory: transformedHistory,
-      iReadyScores: {
+      iReadyScores: student.iready_ela_score || student.iready_math_score ? {
         currentYear: {
-          ela: { diagnostic1: { score: 85, placement: 'On Grade Level' } },
-          math: { diagnostic1: { score: 78, placement: 'Below Grade Level' } }
+          ela: student.iready_ela_score ? { 
+            diagnostic1: { 
+              score: student.iready_ela_score, 
+              placement: student.iready_ela_placement || 'Not Available' 
+            } 
+          } : null,
+          math: student.iready_math_score ? { 
+            diagnostic1: { 
+              score: student.iready_math_score, 
+              placement: student.iready_math_placement || 'Not Available' 
+            } 
+          } : null
         },
         previousYear: {
-          ela: { diagnostic1: { score: 82, placement: 'On Grade Level' } },
-          math: { diagnostic1: { score: 75, placement: 'Below Grade Level' } }
+          ela: { diagnostic1: { score: 0, placement: 'No Previous Data' } },
+          math: { diagnostic1: { score: 0, placement: 'No Previous Data' } }
         }
-      },
+      } : null,
       interventions: []
     };
 

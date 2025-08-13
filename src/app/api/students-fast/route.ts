@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
       sortDirection
     });
 
+
     // Call the stored function that uses the view
     const { data, error } = await supabase.rpc('get_student_attendance_data', {
       p_school_id: schoolId,
@@ -95,7 +96,14 @@ export async function GET(request: NextRequest) {
       tier: mapRiskLevelToTier(row.risk_level),
       riskLevel: row.risk_level,
       tardies: row.tardies || 0,
-      schoolName: row.school_name
+      schoolName: row.school_name,
+      // iReady scores
+      ireadyElaScore: row.iready_ela_score || null,
+      ireadyElaPlacement: row.iready_ela_placement || null,
+      ireadyElaDate: row.iready_ela_date || null,
+      ireadyMathScore: row.iready_math_score || null,
+      ireadyMathPlacement: row.iready_math_placement || null,
+      ireadyMathDate: row.iready_math_date || null
     }));
 
     console.log(`✅ Fast query returned ${students.length} students out of ${totalCount} total`);
