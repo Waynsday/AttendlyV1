@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { cn } from '../utils/cn';
 import { useStudentAttendanceDetails } from '../hooks/useStudentAttendanceDetails';
 import { IReadyHistoryCard } from './IReadyHistoryCard';
+import { InterventionsTimelineCard } from './InterventionsTimelineCard';
 
 // Student detailed data interface - made fields optional to handle basic StudentData
 interface StudentDetail {
@@ -69,13 +70,26 @@ interface StudentDetailSidebarProps {
 }
 
 export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetailSidebarProps) {
+  // DEBUG: Log when component is called
+  console.log('🔍 StudentDetailSidebar called:', { 
+    studentExists: !!student, 
+    isOpen, 
+    studentName: student?.name,
+    studentId: student?.id 
+  });
+
   // Fetch detailed attendance data when sidebar opens
   const attendanceDetails = useStudentAttendanceDetails(
     isOpen && student ? student.studentId : null,
     '2024' // Current school year
   );
 
-  if (!student) return null;
+  if (!student) {
+    console.log('❌ StudentDetailSidebar: No student provided, returning null');
+    return null;
+  }
+
+  console.log('✅ StudentDetailSidebar: Rendering for student:', student.name);
 
   const getTierColor = (tier: string) => {
     switch (tier.toLowerCase()) {
@@ -164,6 +178,16 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
         </div>
 
         <div className="p-6 space-y-6">
+          {/* EARLY DEBUG TEST */}
+          <div style={{
+            backgroundColor: 'purple',
+            color: 'white',
+            padding: '10px',
+            border: '2px solid yellow'
+          }}>
+            🟣 EARLY DEBUG: If you see this, sidebar is rendering
+          </div>
+
           {/* Overview Stats */}
           <Card className="bg-white border-2 border-primary shadow-lg">
             <CardHeader>
@@ -352,7 +376,68 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
             className="border-2 border-primary shadow-lg"
           />
 
-          {/* Intervention History */}
+          {/* DEBUG: Right after IReadyHistoryCard */}
+          <div style={{
+            backgroundColor: 'orange',
+            color: 'black',
+            padding: '15px',
+            border: '3px solid red',
+            fontSize: '16px',
+            fontWeight: 'bold'
+          }}>
+            🟠 DEBUG: After IReadyHistoryCard - should be visible!
+          </div>
+
+          {/* DEBUG: Simple test element */}
+          <div style={{
+            backgroundColor: 'red', 
+            color: 'white', 
+            padding: '20px', 
+            margin: '10px',
+            border: '3px solid blue'
+          }}>
+            <h3>🚨 DEBUG: This should be visible after iReady section</h3>
+            <p>Student ID: {student.id}</p>
+            <p>Aeries ID: {student.studentId}</p>
+            <p>If you see this, the location is working!</p>
+          </div>
+
+          {/* Interventions & Comments Timeline */}
+          <Card className="bg-white border-2 border-primary shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-lg text-primary">Interventions & Comments (Test)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-gray-600">
+                <p>Student ID: {student.id}</p>
+                <p>Aeries ID: {student.studentId}</p>
+                <p>This is a test to verify the component renders in this location.</p>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Interventions Timeline Component with Error Boundary */}
+          <div className="intervention-timeline-wrapper" style={{
+            backgroundColor: 'green',
+            color: 'white',
+            padding: '20px',
+            margin: '10px'
+          }}>
+            <h3>🟢 InterventionsTimelineCard should render here</h3>
+            <p>Student UUID: {student.id}</p>
+            <p>This green box shows where the InterventionsTimelineCard should appear</p>
+            
+            {/* Temporarily comment out the component to test */}
+            {/* <InterventionsTimelineCard 
+              studentId={student.id}
+              className="border-2 border-primary shadow-lg"
+              maxInitialItems={5}
+              showFilters={true}
+              autoRefresh={false}
+            /> */}
+          </div>
+
+          {/* Legacy Intervention History (fallback) */}
           {student.interventions && student.interventions.length > 0 && (
             <Card className="bg-white border-2 border-primary shadow-lg">
               <CardHeader>

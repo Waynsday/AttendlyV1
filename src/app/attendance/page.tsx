@@ -99,6 +99,8 @@ const mockUser = {
 };
 
 export default function AttendancePage() {
+  console.log('🔍 ATTENDANCE PAGE: Component rendering');
+  
   // School year state - matches dashboard
   const [selectedSchoolYear, setSelectedSchoolYear] = React.useState<string>('2024');
   
@@ -145,8 +147,16 @@ export default function AttendancePage() {
 
   // Handle student selection
   const handleStudentClick = (student: StudentData) => {
+    console.log('🔍 ATTENDANCE PAGE: Student clicked!', {
+      studentName: student.name,
+      studentId: student.id,
+      aeriesId: student.studentId
+    });
+    
     setSelectedStudent(student);
     setSidebarOpen(true);
+    
+    console.log('🔍 ATTENDANCE PAGE: State updated - sidebarOpen should be true');
   };
 
   // Handle sidebar close
@@ -240,6 +250,11 @@ export default function AttendancePage() {
     // Standard K-12 grades plus special grades
     return ['-2', '-1', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
   }, []);
+
+  console.log('🔍 ATTENDANCE PAGE: About to render, state:', { 
+    selectedStudent: selectedStudent?.name, 
+    sidebarOpen 
+  });
 
   return (
     <>
@@ -540,14 +555,19 @@ export default function AttendancePage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {student.lastIntervention ? (
-                            <div>
+                            <div className="max-w-48">
                               <div className="text-sm font-medium text-primary">{student.lastIntervention}</div>
                               {student.interventionDate && (
-                                <div className="text-xs text-muted-foreground">{student.interventionDate}</div>
+                                <div className="text-xs text-muted-foreground">{new Date(student.interventionDate).toLocaleDateString()}</div>
+                              )}
+                              {student.interventionDescription && (
+                                <div className="text-xs text-gray-600 truncate" title={student.interventionDescription}>
+                                  {student.interventionDescription}
+                                </div>
                               )}
                             </div>
                           ) : (
-                            <span className="text-sm text-muted-foreground">None</span>
+                            <span className="text-sm text-muted-foreground">No interventions</span>
                           )}
                         </td>
                       </tr>

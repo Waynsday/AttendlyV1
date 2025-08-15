@@ -19,6 +19,7 @@ export interface StudentData {
   tardies: number;
   lastIntervention?: string;
   interventionDate?: string;
+  interventionDescription?: string;
   school?: string;  
   schoolName?: string;
   // iReady scores
@@ -142,13 +143,39 @@ export function useStudentsData(
 
       const data: StudentsApiResponse = await response.json();
 
-      // Debug logging to check tardy data
+      // Debug logging to check intervention data in frontend
       if (data.data && data.data.length > 0) {
-        console.log('🔍 Sample student data from API:', {
-          name: data.data[0].name,
-          tardies: data.data[0].tardies,
-          attendanceRate: data.data[0].attendanceRate
+        const studentsWithInterventions = data.data.filter((s: any) => s.lastIntervention);
+        console.log('🔍 FRONTEND DEBUG: Received intervention data:', {
+          totalStudents: data.data.length,
+          studentsWithInterventions: studentsWithInterventions.length,
+          sampleStudent: {
+            name: data.data[0].name,
+            tardies: data.data[0].tardies,
+            attendanceRate: data.data[0].attendanceRate,
+            lastIntervention: data.data[0].lastIntervention,
+            interventionDate: data.data[0].interventionDate
+          }
         });
+
+        // Check specifically for student 1012350
+        const student1012350 = data.data.find((s: any) => s.studentId === '1012350');
+        if (student1012350) {
+          console.log('🎯 FRONTEND: Student 1012350 received:', {
+            name: student1012350.name,
+            studentId: student1012350.studentId,
+            lastIntervention: student1012350.lastIntervention,
+            interventionDate: student1012350.interventionDate,
+            interventionDescription: student1012350.interventionDescription
+          });
+        }
+
+        if (studentsWithInterventions.length > 0) {
+          console.log('📋 FRONTEND: Sample students with interventions:');
+          studentsWithInterventions.slice(0, 3).forEach((student: any) => {
+            console.log(`  - ${student.name}: ${student.lastIntervention} on ${student.interventionDate}`);
+          });
+        }
       }
 
       setState(prev => ({
