@@ -11,6 +11,7 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { cn } from '../utils/cn';
 import { useStudentAttendanceDetails } from '../hooks/useStudentAttendanceDetails';
+import { useInterventionsData, useInterventionStats } from '../hooks/useInterventionsData';
 import { IReadyHistoryCard } from './IReadyHistoryCard';
 import { InterventionsTimelineCard } from './InterventionsTimelineCard';
 
@@ -83,6 +84,36 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
     isOpen && student ? student.studentId : null,
     '2024' // Current school year
   );
+
+  // Fetch intervention data when sidebar opens
+  const {
+    interventions,
+    meta: interventionMeta,
+    isLoading: interventionsLoading,
+    error: interventionsError,
+    refresh: refreshInterventions
+  } = useInterventionsData({
+    studentId: isOpen && student ? student.studentId : null,
+    pageSize: 10,
+    autoRefresh: false
+  });
+
+  // Get intervention statistics
+  const interventionStats = useInterventionStats(interventions);
+
+  // Debug logging for interventions
+  React.useEffect(() => {
+    if (isOpen && student) {
+      console.log('🔍 StudentDetailSidebar: Interventions data:', {
+        loading: interventionsLoading,
+        error: interventionsError,
+        count: interventions.length,
+        studentId: student.studentId,
+        studentUUID: student.id,
+        interventions: interventions.slice(0, 3) // Log first 3 for debugging
+      });
+    }
+  }, [isOpen, interventionsLoading, interventionsError, interventions.length, student?.studentId]);
 
   if (!student) {
     console.log('❌ StudentDetailSidebar: No student provided, returning null');
@@ -226,118 +257,61 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
           </Button>
         </div>
 
-        <div className="px-8 py-6 space-y-8" style={{ flex: 1, overflowY: 'auto' }}>
+        <div className="flex-1 overflow-y-auto max-h-[calc(100vh-120px)] px-6 py-4 space-y-6">
 
           {/* Overview Stats */}
-          <div 
-            className="bg-white rounded-xl border p-6"
-            style={{
-              borderColor: '#e5e7eb',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-              backgroundColor: '#ffffff'
-            }}
-          >
-            <h3 
-              className="text-lg font-semibold text-gray-900 mb-4"
-              style={{ color: '#1f2937', fontWeight: 600 }}
-            >
+          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Overview
             </h3>
             <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="text-center">
-                <div 
-                  className="text-3xl font-bold mb-1"
-                  style={{ 
-                    color: '#3481a3',
-                    fontWeight: 700,
-                    fontSize: '2rem'
-                  }}
-                >
+                <div className="text-3xl font-bold mb-1 text-primary">
                   {student.attendanceRate.toFixed(1)}%
                 </div>
-                <div 
-                  className="text-sm"
-                  style={{ color: '#6b7280' }}
-                >
+                <div className="text-sm text-muted-foreground">
                   Attendance Rate
                 </div>
               </div>
               <div className="text-center">
-                <div 
-                  className="text-3xl font-bold mb-1"
-                  style={{ 
-                    color: student.absences > 10 ? '#ef4444' : '#3481a3',
-                    fontWeight: 700,
-                    fontSize: '2rem'
-                  }}
-                >
+                <div className={`text-3xl font-bold mb-1 ${student.absences > 10 ? 'text-red-500' : 'text-primary'}`}>
                   {student.absences}
                 </div>
-                <div 
-                  className="text-sm"
-                  style={{ color: '#6b7280' }}
-                >
+                <div className="text-sm text-muted-foreground">
                   Total Absences
                 </div>
               </div>
               <div className="text-center">
-                <div 
-                  className="text-3xl font-bold mb-1"
-                  style={{ 
-                    color: student.tardies > 5 ? '#f59e0b' : '#3481a3',
-                    fontWeight: 700,
-                    fontSize: '2rem'
-                  }}
-                >
+                <div className={`text-3xl font-bold mb-1 ${student.tardies > 5 ? 'text-yellow-500' : 'text-primary'}`}>
                   {student.tardies || 0}
                 </div>
-                <div 
-                  className="text-sm"
-                  style={{ color: '#6b7280' }}
-                >
+                <div className="text-sm text-muted-foreground">
                   Total Tardies
                 </div>
               </div>
             </div>
             
-            <div className="flex items-center justify-between pt-4 border-t" style={{ borderTopColor: '#f3f4f6' }}>
-              <span className="text-sm font-medium" style={{ color: '#374151' }}>Risk Level:</span>
-              <span 
-                className="px-3 py-1 rounded-full text-sm font-medium"
-                style={{
-                  backgroundColor: student.tier.toLowerCase().includes('1') ? '#dcfce7' : 
-                                   student.tier.toLowerCase().includes('2') ? '#fef3c7' : '#fee2e2',
-                  color: student.tier.toLowerCase().includes('1') ? '#166534' : 
-                         student.tier.toLowerCase().includes('2') ? '#92400e' : '#991b1b',
-                  fontSize: '0.875rem',
-                  fontWeight: 500
-                }}
-              >
+            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+              <span className="text-sm font-medium text-gray-700">Risk Level:</span>
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                student.tier.toLowerCase().includes('1') ? 'bg-green-100 text-green-800' :
+                student.tier.toLowerCase().includes('2') ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+              }`}>
                 {student.tier.replace('Tier 1', 'Low Risk').replace('Tier 2', 'Medium Risk').replace('Tier 3', 'High Risk')}
               </span>
             </div>
             
             <div className="pt-4">
-              <span className="text-sm" style={{ color: '#6b7280' }}>
-                <span className="font-medium" style={{ color: '#374151' }}>Teacher:</span> {student.teacher}
+              <span className="text-sm text-muted-foreground">
+                <span className="font-medium text-gray-700">Teacher:</span> {student.teacher}
               </span>
             </div>
           </div>
 
           {/* Attendance Details */}
-          <div 
-            className="bg-white rounded-xl border p-6"
-            style={{
-              borderColor: '#e5e7eb',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-              backgroundColor: '#ffffff'
-            }}
-          >
-            <h3 
-              className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"
-              style={{ color: '#1f2937', fontWeight: 600 }}
-            >
-              <CalendarX className="h-5 w-5" style={{ color: '#3481a3' }} />
+          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <CalendarX className="h-5 w-5 text-primary" />
               Attendance Details
             </h3>
             <div>
@@ -369,7 +343,7 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
                   {attendanceDetails.data.absentDates && attendanceDetails.data.absentDates.length > 0 ? (
                     <div>
                       <h4 className="text-sm font-medium text-primary mb-2">Absent Dates ({attendanceDetails.data.absentDates.length})</h4>
-                      <div className="max-h-48 overflow-y-auto space-y-1">
+                      <div className="max-h-32 overflow-y-auto space-y-1 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                         {attendanceDetails.data.absentDates.map((record, index) => (
                           <div key={index} className="flex items-center justify-between py-1 px-2 bg-red-50 rounded text-sm">
                             <span className="text-muted-foreground">{record.date}</span>
@@ -414,22 +388,12 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
 
           {/* iReady Scores */}
           {student.iReadyScores && student.iReadyScores.length > 0 && (
-            <div 
-              className="bg-white rounded-xl border p-6"
-              style={{
-                borderColor: '#e5e7eb',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                backgroundColor: '#ffffff'
-              }}
-            >
-              <h3 
-                className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"
-                style={{ color: '#1f2937', fontWeight: 600 }}
-              >
-                <BookOpen className="h-5 w-5" style={{ color: '#3481a3' }} />
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-primary" />
                 iReady Scores
               </h3>
-              <div className="space-y-4">
+              <div className="space-y-4 max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                 {student.iReadyScores.map((score, index) => (
                   <div key={index} className="border border-primary/20 rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
@@ -476,55 +440,143 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
           {/* iReady Assessment History */}
           <IReadyHistoryCard 
             studentId={student.id}
-            className="bg-white rounded-xl border shadow-sm"
-            style={{
-              borderColor: '#e5e7eb',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-            }}
+            className="bg-white rounded-xl border border-gray-200 shadow-sm"
           />
 
 
-          {/* Interventions & Comments Timeline */}
-          <div 
-            className="bg-white rounded-xl border p-6"
-            style={{
-              borderColor: '#e5e7eb',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-              backgroundColor: '#ffffff'
-            }}
-          >
-            <h3 
-              className="text-lg font-semibold text-gray-900 mb-4"
-              style={{ color: '#1f2937', fontWeight: 600 }}
-            >
+          {/* Interventions & Timeline */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-primary" />
               Interventions & Timeline
             </h3>
-            <div className="text-sm" style={{ color: '#6b7280' }}>
-              <p className="mb-2">Student ID: {student.id}</p>
-              <p className="mb-2">Aeries ID: {student.studentId}</p>
-              <p>Intervention history and timeline data will appear here.</p>
-            </div>
+            
+            {interventionsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                <span className="ml-2 text-sm text-muted-foreground">Loading interventions...</span>
+              </div>
+            ) : interventionsError ? (
+              <div className="text-center py-6">
+                <div className="text-sm text-red-600 mb-2">Error loading interventions</div>
+                <div className="text-xs text-muted-foreground">{interventionsError}</div>
+                <Button
+                  onClick={refreshInterventions}
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
+                >
+                  Retry
+                </Button>
+              </div>
+            ) : interventions.length === 0 ? (
+              <div className="text-center py-6 bg-sky-50 rounded-lg">
+                <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-primary" />
+                <div className="text-sm font-medium text-gray-900">No Interventions Recorded</div>
+                <div className="text-xs mt-1 text-muted-foreground">This student has no intervention history on file.</div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Intervention Statistics */}
+                <div className="grid grid-cols-3 gap-4 p-4 rounded-lg bg-gray-50">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">
+                      {interventionStats.totalCount}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Total</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-yellow-500">
+                      {interventionStats.followUpCount}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Follow-ups</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-red-500">
+                      {interventionStats.highRiskCount}
+                    </div>
+                    <div className="text-xs text-muted-foreground">High Risk</div>
+                  </div>
+                </div>
+
+                {/* Recent Interventions */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-gray-700">
+                    Recent Interventions ({Math.min(5, interventions.length)})
+                  </h4>
+                  <div className="max-h-80 overflow-y-auto space-y-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                    {interventions.slice(0, 5).map((intervention, index) => (
+                      <div 
+                        key={intervention.id} 
+                        className="border-l-4 pl-4 py-3 rounded-r-lg"
+                        style={{
+                          borderLeftColor: intervention.riskLevel === 'HIGH' || intervention.riskLevel === 'CRITICAL' ? '#ef4444' : 
+                                           intervention.riskLevel === 'MEDIUM' ? '#f59e0b' : '#10b981',
+                          backgroundColor: '#fafbfc'
+                        }}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium text-sm text-gray-900">
+                            {intervention.type.replace(/_/g, ' ')}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span 
+                              className="px-2 py-1 rounded-full text-xs font-medium"
+                              style={{
+                                backgroundColor: intervention.status === 'COMPLETED' ? '#dcfce7' :
+                                               intervention.status === 'PENDING' ? '#fef3c7' : '#fee2e2',
+                                color: intervention.status === 'COMPLETED' ? '#166534' :
+                                       intervention.status === 'PENDING' ? '#92400e' : '#991b1b'
+                              }}
+                            >
+                              {intervention.status}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {formatDate(intervention.date)}
+                            </span>
+                          </div>
+                        </div>
+                        {intervention.description && (
+                          <p className="text-sm text-muted-foreground">
+                            {intervention.description}
+                          </p>
+                        )}
+                        {intervention.followUpRequired && (
+                          <div className="mt-2 flex items-center gap-1">
+                            <Calendar className="h-3 w-3 text-yellow-500" />
+                            <span className="text-xs text-yellow-500">Follow-up required</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* View All Button */}
+                {interventions.length > 5 && (
+                  <div className="text-center pt-4 border-t border-gray-100">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-sm"
+                    >
+                      View All {interventions.length} Interventions
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           
 
           {/* Legacy Intervention History (fallback) */}
           {student.interventions && student.interventions.length > 0 && (
-            <div 
-              className="bg-white rounded-xl border p-6"
-              style={{
-                borderColor: '#e5e7eb',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                backgroundColor: '#ffffff'
-              }}
-            >
-              <h3 
-                className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"
-                style={{ color: '#1f2937', fontWeight: 600 }}
-              >
-                <AlertTriangle className="h-5 w-5" style={{ color: '#3481a3' }} />
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-primary" />
                 Intervention History
               </h3>
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                 {student.interventions.map((intervention, index) => (
                   <div key={index} className="border-l-4 border-primary/30 pl-3 py-2">
                     <div className="flex items-center gap-2 mb-1">
@@ -550,35 +602,21 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
 
           {/* Staff Comments */}
           {student.comments && student.comments.length > 0 && (
-            <div 
-              className="bg-white rounded-xl border p-6"
-              style={{
-                borderColor: '#e5e7eb',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                backgroundColor: '#ffffff'
-              }}
-            >
-              <h3 
-                className="text-lg font-semibold text-gray-900 mb-4"
-                style={{ color: '#1f2937', fontWeight: 600 }}
-              >
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Staff Comments
               </h3>
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                 {student.comments.map((comment, index) => (
                   <div 
                     key={index} 
-                    className="rounded-lg p-4 border"
-                    style={{
-                      backgroundColor: '#f9fafb',
-                      borderColor: '#e5e7eb'
-                    }}
+                    className="rounded-lg p-4 border border-gray-200 bg-gray-50"
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium text-sm" style={{ color: '#374151' }}>{comment.staff}</span>
-                      <span className="text-xs" style={{ color: '#6b7280' }}>{formatDate(comment.date)}</span>
+                      <span className="font-medium text-sm text-gray-700">{comment.staff}</span>
+                      <span className="text-xs text-muted-foreground">{formatDate(comment.date)}</span>
                     </div>
-                    <p className="text-sm" style={{ color: '#6b7280' }}>{comment.comment}</p>
+                    <p className="text-sm text-muted-foreground">{comment.comment}</p>
                   </div>
                 ))}
               </div>
