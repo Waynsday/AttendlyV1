@@ -150,6 +150,15 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
       {isOpen && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 40
+          }}
           onClick={onClose}
         />
       )}
@@ -160,92 +169,178 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
           'fixed right-0 top-0 h-full w-96 bg-white shadow-xl transform transition-transform duration-300 ease-in-out z-50 overflow-y-auto',
           isOpen ? 'translate-x-0' : 'translate-x-full'
         )}
+        style={{
+          position: 'fixed',
+          right: 0,
+          top: 0,
+          height: '100vh',
+          width: '420px',
+          backgroundColor: '#ffffff',
+          zIndex: 50,
+          transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
+          transition: 'transform 400ms cubic-bezier(0.4, 0, 0.2, 1)',
+          boxShadow: '-8px 0 32px rgba(0, 0, 0, 0.12)',
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          borderLeft: '1px solid #e5e7eb'
+        }}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b-2 border-primary px-6 py-4 flex items-center justify-between">
+        <div 
+          className="sticky top-0 bg-white border-b px-8 py-6 flex items-center justify-between" 
+          style={{ 
+            flexShrink: 0, 
+            zIndex: 10,
+            borderBottomColor: '#e5e7eb',
+            backgroundColor: '#fafbfc'
+          }}
+        >
           <div>
-            <h2 className="text-xl font-semibold text-primary">{student.name}</h2>
-            <p className="text-sm text-muted-foreground">ID: {student.studentId} • Grade {student.grade}</p>
+            <h2 
+              className="text-2xl font-semibold text-gray-900 mb-1"
+              style={{ color: '#1f2937', fontWeight: 600 }}
+            >
+              {student.name}
+            </h2>
+            <p 
+              className="text-sm text-gray-500"
+              style={{ color: '#6b7280' }}
+            >
+              Student ID: {student.studentId} • Grade {student.grade}
+            </p>
           </div>
           <Button
             variant="ghost"
             size="icon"
             onClick={onClose}
             aria-label="Close student details"
+            className="hover:bg-gray-100 rounded-full"
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%'
+            }}
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5 text-gray-500" />
           </Button>
         </div>
 
-        <div className="p-6 space-y-6">
-          {/* EARLY DEBUG TEST */}
-          <div style={{
-            backgroundColor: 'purple',
-            color: 'white',
-            padding: '10px',
-            border: '2px solid yellow'
-          }}>
-            🟣 EARLY DEBUG: If you see this, sidebar is rendering
-          </div>
+        <div className="px-8 py-6 space-y-8" style={{ flex: 1, overflowY: 'auto' }}>
 
           {/* Overview Stats */}
-          <Card className="bg-white border-2 border-primary shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-lg text-primary">Overview</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <div className="text-2xl font-bold text-primary">
-                    {student.attendanceRate.toFixed(1)}%
-                  </div>
-                  <div className="text-sm text-muted-foreground">Attendance Rate</div>
+          <div 
+            className="bg-white rounded-xl border p-6"
+            style={{
+              borderColor: '#e5e7eb',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+              backgroundColor: '#ffffff'
+            }}
+          >
+            <h3 
+              className="text-lg font-semibold text-gray-900 mb-4"
+              style={{ color: '#1f2937', fontWeight: 600 }}
+            >
+              Overview
+            </h3>
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="text-center">
+                <div 
+                  className="text-3xl font-bold mb-1"
+                  style={{ 
+                    color: '#3481a3',
+                    fontWeight: 700,
+                    fontSize: '2rem'
+                  }}
+                >
+                  {student.attendanceRate.toFixed(1)}%
                 </div>
-                <div>
-                  <div className="text-2xl font-bold text-primary">
-                    {student.absences}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Total Absences</div>
-                </div>
-                <div>
-                  <div className={`text-2xl font-bold ${student.tardies > 5 ? 'text-yellow-600' : 'text-primary'}`}>
-                    {student.tardies || 0}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Total Tardies</div>
+                <div 
+                  className="text-sm"
+                  style={{ color: '#6b7280' }}
+                >
+                  Attendance Rate
                 </div>
               </div>
-              
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-primary">Risk Level:</span>
-                <span className={cn('px-2 py-1 rounded-full text-xs font-medium border', getTierColor(student.tier))}>
-                  {student.tier.replace('Tier 1', 'Low Risk').replace('Tier 2', 'Medium Risk').replace('Tier 3', 'High Risk')}
-                </span>
-              </div>
-              
-              {student.riskLevel && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-primary">Risk Level:</span>
-                  <span className={cn('font-medium capitalize', getRiskColor(student.riskLevel))}>
-                    {student.riskLevel}
-                  </span>
+              <div className="text-center">
+                <div 
+                  className="text-3xl font-bold mb-1"
+                  style={{ 
+                    color: student.absences > 10 ? '#ef4444' : '#3481a3',
+                    fontWeight: 700,
+                    fontSize: '2rem'
+                  }}
+                >
+                  {student.absences}
                 </div>
-              )}
-              
-              <div className="text-sm text-muted-foreground">
-                <strong className="text-primary">Teacher:</strong> {student.teacher}
+                <div 
+                  className="text-sm"
+                  style={{ color: '#6b7280' }}
+                >
+                  Total Absences
+                </div>
               </div>
-            </CardContent>
-          </Card>
+              <div className="text-center">
+                <div 
+                  className="text-3xl font-bold mb-1"
+                  style={{ 
+                    color: student.tardies > 5 ? '#f59e0b' : '#3481a3',
+                    fontWeight: 700,
+                    fontSize: '2rem'
+                  }}
+                >
+                  {student.tardies || 0}
+                </div>
+                <div 
+                  className="text-sm"
+                  style={{ color: '#6b7280' }}
+                >
+                  Total Tardies
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between pt-4 border-t" style={{ borderTopColor: '#f3f4f6' }}>
+              <span className="text-sm font-medium" style={{ color: '#374151' }}>Risk Level:</span>
+              <span 
+                className="px-3 py-1 rounded-full text-sm font-medium"
+                style={{
+                  backgroundColor: student.tier.toLowerCase().includes('1') ? '#dcfce7' : 
+                                   student.tier.toLowerCase().includes('2') ? '#fef3c7' : '#fee2e2',
+                  color: student.tier.toLowerCase().includes('1') ? '#166534' : 
+                         student.tier.toLowerCase().includes('2') ? '#92400e' : '#991b1b',
+                  fontSize: '0.875rem',
+                  fontWeight: 500
+                }}
+              >
+                {student.tier.replace('Tier 1', 'Low Risk').replace('Tier 2', 'Medium Risk').replace('Tier 3', 'High Risk')}
+              </span>
+            </div>
+            
+            <div className="pt-4">
+              <span className="text-sm" style={{ color: '#6b7280' }}>
+                <span className="font-medium" style={{ color: '#374151' }}>Teacher:</span> {student.teacher}
+              </span>
+            </div>
+          </div>
 
           {/* Attendance Details */}
-          <Card className="bg-white border-2 border-primary shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2 text-primary">
-                <CalendarX className="h-5 w-5" />
-                Attendance Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+          <div 
+            className="bg-white rounded-xl border p-6"
+            style={{
+              borderColor: '#e5e7eb',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+              backgroundColor: '#ffffff'
+            }}
+          >
+            <h3 
+              className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"
+              style={{ color: '#1f2937', fontWeight: 600 }}
+            >
+              <CalendarX className="h-5 w-5" style={{ color: '#3481a3' }} />
+              Attendance Details
+            </h3>
+            <div>
               {attendanceDetails.loading ? (
                 <div className="flex items-center justify-center py-4">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
@@ -314,19 +409,27 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* iReady Scores */}
           {student.iReadyScores && student.iReadyScores.length > 0 && (
-            <Card className="bg-white border-2 border-primary shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2 text-primary">
-                  <BookOpen className="h-5 w-5" />
-                  iReady Scores
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <div 
+              className="bg-white rounded-xl border p-6"
+              style={{
+                borderColor: '#e5e7eb',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                backgroundColor: '#ffffff'
+              }}
+            >
+              <h3 
+                className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"
+                style={{ color: '#1f2937', fontWeight: 600 }}
+              >
+                <BookOpen className="h-5 w-5" style={{ color: '#3481a3' }} />
+                iReady Scores
+              </h3>
+              <div className="space-y-4">
                 {student.iReadyScores.map((score, index) => (
                   <div key={index} className="border border-primary/20 rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
@@ -366,87 +469,62 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
                     </div>
                   </div>
                 ))}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
           {/* iReady Assessment History */}
           <IReadyHistoryCard 
             studentId={student.id}
-            className="border-2 border-primary shadow-lg"
+            className="bg-white rounded-xl border shadow-sm"
+            style={{
+              borderColor: '#e5e7eb',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+            }}
           />
 
-          {/* DEBUG: Right after IReadyHistoryCard */}
-          <div style={{
-            backgroundColor: 'orange',
-            color: 'black',
-            padding: '15px',
-            border: '3px solid red',
-            fontSize: '16px',
-            fontWeight: 'bold'
-          }}>
-            🟠 DEBUG: After IReadyHistoryCard - should be visible!
-          </div>
-
-          {/* DEBUG: Simple test element */}
-          <div style={{
-            backgroundColor: 'red', 
-            color: 'white', 
-            padding: '20px', 
-            margin: '10px',
-            border: '3px solid blue'
-          }}>
-            <h3>🚨 DEBUG: This should be visible after iReady section</h3>
-            <p>Student ID: {student.id}</p>
-            <p>Aeries ID: {student.studentId}</p>
-            <p>If you see this, the location is working!</p>
-          </div>
 
           {/* Interventions & Comments Timeline */}
-          <Card className="bg-white border-2 border-primary shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-lg text-primary">Interventions & Comments (Test)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm text-gray-600">
-                <p>Student ID: {student.id}</p>
-                <p>Aeries ID: {student.studentId}</p>
-                <p>This is a test to verify the component renders in this location.</p>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Interventions Timeline Component with Error Boundary */}
-          <div className="intervention-timeline-wrapper" style={{
-            backgroundColor: 'green',
-            color: 'white',
-            padding: '20px',
-            margin: '10px'
-          }}>
-            <h3>🟢 InterventionsTimelineCard should render here</h3>
-            <p>Student UUID: {student.id}</p>
-            <p>This green box shows where the InterventionsTimelineCard should appear</p>
-            
-            {/* Temporarily comment out the component to test */}
-            {/* <InterventionsTimelineCard 
-              studentId={student.id}
-              className="border-2 border-primary shadow-lg"
-              maxInitialItems={5}
-              showFilters={true}
-              autoRefresh={false}
-            /> */}
+          <div 
+            className="bg-white rounded-xl border p-6"
+            style={{
+              borderColor: '#e5e7eb',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+              backgroundColor: '#ffffff'
+            }}
+          >
+            <h3 
+              className="text-lg font-semibold text-gray-900 mb-4"
+              style={{ color: '#1f2937', fontWeight: 600 }}
+            >
+              Interventions & Timeline
+            </h3>
+            <div className="text-sm" style={{ color: '#6b7280' }}>
+              <p className="mb-2">Student ID: {student.id}</p>
+              <p className="mb-2">Aeries ID: {student.studentId}</p>
+              <p>Intervention history and timeline data will appear here.</p>
+            </div>
           </div>
+          
 
           {/* Legacy Intervention History (fallback) */}
           {student.interventions && student.interventions.length > 0 && (
-            <Card className="bg-white border-2 border-primary shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2 text-primary">
-                  <AlertTriangle className="h-5 w-5" />
-                  Intervention History
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
+            <div 
+              className="bg-white rounded-xl border p-6"
+              style={{
+                borderColor: '#e5e7eb',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                backgroundColor: '#ffffff'
+              }}
+            >
+              <h3 
+                className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"
+                style={{ color: '#1f2937', fontWeight: 600 }}
+              >
+                <AlertTriangle className="h-5 w-5" style={{ color: '#3481a3' }} />
+                Intervention History
+              </h3>
+              <div className="space-y-3">
                 {student.interventions.map((intervention, index) => (
                   <div key={index} className="border-l-4 border-primary/30 pl-3 py-2">
                     <div className="flex items-center gap-2 mb-1">
@@ -466,28 +544,45 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
                     )}
                   </div>
                 ))}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
           {/* Staff Comments */}
           {student.comments && student.comments.length > 0 && (
-            <Card className="bg-white border-2 border-primary shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-lg text-primary">Staff Comments</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
+            <div 
+              className="bg-white rounded-xl border p-6"
+              style={{
+                borderColor: '#e5e7eb',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                backgroundColor: '#ffffff'
+              }}
+            >
+              <h3 
+                className="text-lg font-semibold text-gray-900 mb-4"
+                style={{ color: '#1f2937', fontWeight: 600 }}
+              >
+                Staff Comments
+              </h3>
+              <div className="space-y-3">
                 {student.comments.map((comment, index) => (
-                  <div key={index} className="bg-muted rounded-lg p-3 border border-primary/10">
+                  <div 
+                    key={index} 
+                    className="rounded-lg p-4 border"
+                    style={{
+                      backgroundColor: '#f9fafb',
+                      borderColor: '#e5e7eb'
+                    }}
+                  >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium text-sm text-primary">{comment.staff}</span>
-                      <span className="text-xs text-muted-foreground">{formatDate(comment.date)}</span>
+                      <span className="font-medium text-sm" style={{ color: '#374151' }}>{comment.staff}</span>
+                      <span className="text-xs" style={{ color: '#6b7280' }}>{formatDate(comment.date)}</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">{comment.comment}</p>
+                    <p className="text-sm" style={{ color: '#6b7280' }}>{comment.comment}</p>
                   </div>
                 ))}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
         </div>
       </div>

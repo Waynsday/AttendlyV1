@@ -9,11 +9,11 @@ import { createAdminClient } from '@/lib/supabase/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { studentId: string } }
+  { params }: { params: Promise<{ studentId: string }> }
 ) {
   try {
     const supabase = createAdminClient();
-    const { studentId } = params;
+    const { studentId } = await params;
 
     console.log(`🔍 Fetching iReady history for student ${studentId}`);
 

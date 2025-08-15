@@ -8,27 +8,27 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../../utils/cn';
 
 const badgeVariants = cva(
-  'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+  'inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
   {
     variants: {
       variant: {
         // Default badge - primary colors
-        default: 'bg-primary-100 text-primary-800 border border-primary-200',
+        default: 'bg-primary-100 text-primary-700 border border-transparent',
         
         // Secondary badge - neutral colors
-        secondary: 'bg-neutral-100 text-neutral-800 border border-neutral-200',
+        secondary: 'bg-gray-100 text-gray-700 border border-transparent',
         
         // Success badge - green colors
-        success: 'bg-green-100 text-green-800 border border-green-200',
+        success: 'bg-success-50 text-success-700 border border-transparent',
         
         // Warning badge - yellow colors
-        warning: 'bg-yellow-100 text-yellow-800 border border-yellow-200',
+        warning: 'bg-warning-50 text-warning-700 border border-transparent',
         
         // Error badge - red colors
-        destructive: 'bg-red-100 text-red-800 border border-red-200',
+        destructive: 'bg-error-50 text-error-700 border border-transparent',
         
-        // Accent badge - Attendly yellow
-        accent: 'bg-accent-100 text-accent-800 border border-accent-200',
+        // Info badge - blue colors
+        info: 'bg-primary-100 text-primary-700 border border-transparent',
         
         // Outline badge - transparent background
         outline: 'text-primary-600 border border-primary-300 bg-transparent',

@@ -50,13 +50,13 @@ export interface TimelineResponse {
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { studentId: string } }
+  { params }: { params: Promise<{ studentId: string }> }
 ) {
   try {
-    console.log('🔍 Timeline API called for student:', params.studentId);
+    const { studentId } = await params;
+    console.log('🔍 Timeline API called for student:', studentId);
     
     const supabase = createAdminClient();
-    const { studentId } = params;
 
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams;

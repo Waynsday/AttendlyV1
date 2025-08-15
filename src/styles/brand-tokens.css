@@ -11,27 +11,27 @@
 :root {
   /* ===== BRAND COLORS ===== */
   
-  /* Primary Colors */
-  --color-primary-50: #F4F5F7;     /* Background gray */
-  --color-primary-100: #E5E7EB;    /* Light gray */
-  --color-primary-200: #D1D5DB;    /* Medium light gray */
-  --color-primary-300: #9CA3AF;    /* Medium gray */
-  --color-primary-400: #6B7280;    /* Dark medium gray */
-  --color-primary-500: #4B5563;    /* Dark gray */
-  --color-primary-600: #364959;    /* Slate blue (primary dark) */
-  --color-primary-700: #283849;    /* Body text blue */
-  --color-primary-800: #1F2937;    /* Very dark gray */
-  --color-primary-900: #101011;    /* Charcoal dark (primary) */
+  /* Primary Colors - Attendly Blue */
+  --color-primary-50: #E6F2F7;     /* Lightest blue */
+  --color-primary-100: #CCE5EF;    /* Light blue */
+  --color-primary-200: #99CADF;    /* Medium light blue */
+  --color-primary-300: #66B0CF;    /* Medium blue */
+  --color-primary-400: #4D98B9;    /* Medium dark blue */
+  --color-primary-500: #3481A3;    /* Attendly blue (primary) */
+  --color-primary-600: #2A6782;    /* Dark blue */
+  --color-primary-700: #1F4D62;    /* Darker blue */
+  --color-primary-800: #153341;    /* Very dark blue */
+  --color-primary-900: #0A1A21;    /* Darkest blue */
   
-  /* Accent Yellow */
-  --color-accent-50: #FFFEF0;      /* Very light yellow */
-  --color-accent-100: #FFFBD0;     /* Light yellow */
-  --color-accent-200: #FFF8A0;     /* Medium light yellow */
-  --color-accent-300: #FFF570;     /* Medium yellow */
-  --color-accent-400: #FFF361;     /* Signature yellow */
-  --color-accent-500: #F4E542;     /* Medium dark yellow */
-  --color-accent-600: #D4C422;     /* Dark yellow */
-  --color-accent-700: #B4A018;     /* Very dark yellow */
+  /* Accent - Also uses Primary Blue */
+  --color-accent-50: #E6F2F7;      /* Lightest blue */
+  --color-accent-100: #CCE5EF;     /* Light blue */
+  --color-accent-200: #99CADF;     /* Medium light blue */
+  --color-accent-300: #66B0CF;     /* Medium blue */
+  --color-accent-400: #4D98B9;     /* Medium dark blue */
+  --color-accent-500: #3481A3;     /* Attendly blue */
+  --color-accent-600: #2A6782;     /* Dark blue */
+  --color-accent-700: #1F4D62;     /* Darker blue */
   
   /* Neutral Colors */
   --color-neutral-0: #FFFFFF;      /* Pure white */
@@ -258,8 +258,8 @@ body {
   font-family: var(--font-family-primary);
   font-size: var(--font-size-body);
   line-height: var(--line-height-body);
-  color: var(--color-primary-700);
-  background-color: var(--color-neutral-100);
+  color: var(--color-neutral-900);
+  background-color: var(--color-neutral-0);
 }
 
 /* Heading styles matching Attendly */
