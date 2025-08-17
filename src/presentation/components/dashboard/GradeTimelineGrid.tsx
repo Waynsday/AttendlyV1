@@ -129,6 +129,19 @@ export function GradeTimelineGrid({
     }
   }
 
+  const getGradeName = (gradeLevel: number): string => {
+    switch (gradeLevel) {
+      case -2:
+        return 'Preschool'
+      case -1:
+        return 'Transitional Kindergarten'
+      case 0:
+        return 'Kindergarten'
+      default:
+        return `Grade ${gradeLevel}`
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -215,7 +228,7 @@ export function GradeTimelineGrid({
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">
-                  Grade {grade.grade}
+                  {getGradeName(grade.grade)}
                 </CardTitle>
                 <div className="flex items-center gap-2">
                   {getTrendIcon(grade.trend)}

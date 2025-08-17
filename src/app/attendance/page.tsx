@@ -353,10 +353,7 @@ export default function AttendancePage() {
                     <SelectContent>
                       {schoolYears.map((year) => (
                         <SelectItem key={year.value} value={year.value}>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{year.label}</span>
-                            <span className="text-xs text-gray-500">{year.description}</span>
-                          </div>
+                          <span className="font-medium">{year.label}</span>
                         </SelectItem>
                       ))}
                     </SelectContent>

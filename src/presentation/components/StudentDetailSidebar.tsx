@@ -229,7 +229,14 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
         <div className="sticky top-0 bg-white border-b-2 border-primary px-6 py-4 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold text-primary">{student.name}</h2>
-            <p className="text-sm text-muted-foreground">ID: {student.studentId} • Grade {student.grade}</p>
+            <div className="text-sm text-muted-foreground">
+              <span>ID: {student.studentId} • Grade {student.grade}</span>
+              {attendanceDetails.data?.schools && attendanceDetails.data.schools.length > 0 && (
+                <span> • School{attendanceDetails.data.schools.length > 1 ? 's' : ''}: {
+                  attendanceDetails.data.schools.map(school => school.school_code).join(', ')
+                }</span>
+              )}
+            </div>
           </div>
           <Button
             variant="ghost"

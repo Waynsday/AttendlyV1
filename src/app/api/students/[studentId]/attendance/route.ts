@@ -44,9 +44,9 @@ export async function GET(
       .from('attendance_records')
       .select(`
         attendance_date,
-        is_present,
-        days_enrolled,
-        school_year
+        all_day_attendance_code,
+        school_year,
+        school_code
       `)
       .eq('aeries_student_id', parseInt(studentId))
       .gte('attendance_date', startDate)
@@ -61,6 +61,22 @@ export async function GET(
       );
     }
 
+    // Get unique school codes from attendance records
+    const uniqueSchoolCodes = [...new Set((attendanceRecords || []).map(record => record.school_code))];
+    
+    // Fetch school information for these school codes
+    let schoolInfo = [];
+    if (uniqueSchoolCodes.length > 0) {
+      const { data: schools, error: schoolsError } = await supabase
+        .from('schools')
+        .select('school_code, aeries_school_code, school_name')
+        .in('aeries_school_code', uniqueSchoolCodes);
+      
+      if (!schoolsError && schools) {
+        schoolInfo = schools;
+      }
+    }
+
     // Process records to separate present and absent dates
     const presentDates = [];
     const absentDates = [];
@@ -73,13 +89,14 @@ export async function GET(
         year: 'numeric'
       });
 
-      if (record.is_present) {
+      // Use all_day_attendance_code to determine presence: P = Present, A = Absent
+      if (record.all_day_attendance_code === 'P') {
         presentDates.push({
           date: dateStr,
           rawDate: record.attendance_date,
           status: 'present'
         });
-      } else {
+      } else if (record.all_day_attendance_code === 'A') {
         absentDates.push({
           date: dateStr,
           rawDate: record.attendance_date,
@@ -87,10 +104,9 @@ export async function GET(
         });
       }
 
-      // Track total enrollment days
-      if (record.days_enrolled > totalEnrolled) {
-        totalEnrolled = record.days_enrolled;
-      }
+      // Note: days_enrolled is not available in attendance_records
+      // We'll calculate total enrolled days from the record count
+      totalEnrolled++;
     }
 
     // Calculate attendance rate
@@ -110,6 +126,7 @@ export async function GET(
         enrolledDays: totalEnrolled,
         presentDates,
         absentDates,
+        schools: schoolInfo,
         dateRange: {
           start: startDate,
           end: endDate

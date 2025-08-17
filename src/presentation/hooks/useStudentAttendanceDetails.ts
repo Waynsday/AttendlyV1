@@ -10,6 +10,12 @@ interface AttendanceRecord {
   status: 'present' | 'absent';
 }
 
+interface SchoolInfo {
+  school_code: string;
+  aeries_school_code: string;
+  school_name: string;
+}
+
 interface StudentAttendanceDetails {
   studentId: string;
   schoolYear: string;
@@ -20,6 +26,7 @@ interface StudentAttendanceDetails {
   enrolledDays: number;
   presentDates: AttendanceRecord[];
   absentDates: AttendanceRecord[];
+  schools: SchoolInfo[];
   dateRange: {
     start: string;
     end: string;
