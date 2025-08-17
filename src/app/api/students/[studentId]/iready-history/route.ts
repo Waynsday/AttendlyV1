@@ -5,19 +5,64 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ studentId: string }> }
 ) {
   try {
-    const supabase = createAdminClient();
+    // Use service role key if available, otherwise use anon key
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
     const { studentId } = await params;
 
     console.log(`🔍 Fetching iReady history for student ${studentId}`);
 
-    // Get all iReady diagnostic results for this student
+    // First, determine if studentId is a UUID (student.id) or aeries_student_id
+    let aeriesStudentId: number;
+    
+    // Check if studentId is a UUID (contains hyphens) or numeric string
+    const isUUID = studentId.includes('-');
+    
+    if (isUUID) {
+      // If UUID, get the aeries_student_id from students table
+      const { data: studentData, error: studentError } = await supabase
+        .from('students')
+        .select('aeries_student_id')
+        .eq('id', studentId)
+        .single();
+        
+      if (studentError || !studentData) {
+        console.error('Student not found for UUID:', studentError);
+        return NextResponse.json({
+          success: true,
+          data: {
+            hasData: false,
+            message: 'Student not found',
+            history: { ela: [], math: [] },
+            summary: {
+              totalAssessments: 0,
+              latestEla: null,
+              latestMath: null,
+              yearRange: null
+            }
+          }
+        });
+      }
+      
+      aeriesStudentId = studentData.aeries_student_id;
+    } else {
+      // If not UUID, assume it's already an aeries_student_id
+      aeriesStudentId = parseInt(studentId);
+    }
+
+    console.log(`🔍 Using aeries_student_id ${aeriesStudentId} for iReady lookup`);
+
+    // Get all iReady diagnostic results for this student using aeries_student_id
     const { data: ireadyData, error } = await supabase
       .from('iready_diagnostic_results')
       .select(`
@@ -29,7 +74,7 @@ export async function GET(
         school_year,
         created_at
       `)
-      .eq('student_id', studentId)
+      .eq('aeries_student_id', aeriesStudentId)
       .order('diagnostic_date', { ascending: false })
       .order('created_at', { ascending: false });
 

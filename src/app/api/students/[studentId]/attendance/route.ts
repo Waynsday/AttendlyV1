@@ -6,16 +6,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ studentId: string }> }
 ) {
   try {
+    // Use service role key if available, otherwise use anon key
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
     const { studentId } = await params;
     const url = new URL(request.url);
     const schoolYear = url.searchParams.get('schoolYear') || '2024';
@@ -24,12 +25,47 @@ export async function GET(
     const startDate = schoolYear === '2024' ? '2024-08-15' : '2023-08-15';
     const endDate = schoolYear === '2024' ? '2025-06-12' : '2024-06-12';
 
-    // First, find the student UUID from the aeries_student_id string (like "1010205")
-    const { data: students, error: studentError } = await supabase
-      .from('students')
-      .select('id, first_name, last_name, aeries_student_id')
-      .eq('aeries_student_id', parseInt(studentId))
-      .single();
+    // Check if studentId is a UUID or aeries_student_id
+    const isUUID = studentId.includes('-');
+    
+    let students, studentError;
+    
+    if (isUUID) {
+      // If UUID, query by the id field
+      const result = await supabase
+        .from('students')
+        .select('id, first_name, last_name, aeries_student_id')
+        .eq('id', studentId)
+        .single();
+      students = result.data;
+      studentError = result.error;
+    } else {
+      // If aeries_student_id, query by aeries_student_id (handle duplicates by taking first active)
+      const result = await supabase
+        .from('students')
+        .select('id, first_name, last_name, aeries_student_id, is_active')
+        .eq('aeries_student_id', studentId)
+        .eq('is_active', true)
+        .limit(1);
+      
+      if (result.error) {
+        studentError = result.error;
+        students = null;
+      } else if (!result.data || result.data.length === 0) {
+        // Try without is_active filter if no active student found
+        const fallbackResult = await supabase
+          .from('students')
+          .select('id, first_name, last_name, aeries_student_id')
+          .eq('aeries_student_id', studentId)
+          .limit(1);
+        
+        students = fallbackResult.data?.[0] || null;
+        studentError = fallbackResult.error;
+      } else {
+        students = result.data[0];
+        studentError = null;
+      }
+    }
 
     if (studentError || !students) {
       console.error('Student not found:', studentError);
@@ -39,7 +75,7 @@ export async function GET(
       );
     }
 
-    // Now fetch attendance records using the aeries_student_id
+    // Now fetch attendance records using the aeries_student_id from the student record
     const { data: attendanceRecords, error: attendanceError } = await supabase
       .from('attendance_records')
       .select(`
@@ -48,7 +84,7 @@ export async function GET(
         school_year,
         school_code
       `)
-      .eq('aeries_student_id', parseInt(studentId))
+      .eq('aeries_student_id', students.aeries_student_id)
       .gte('attendance_date', startDate)
       .lte('attendance_date', endDate)
       .order('attendance_date', { ascending: false });
