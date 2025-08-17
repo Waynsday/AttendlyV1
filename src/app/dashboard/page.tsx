@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import { DashboardLayout } from '@/presentation/components/dashboard-layout';
 import { GradeTimelineGrid } from '@/presentation/components/dashboard/GradeTimelineGrid';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/presentation/components/ui/select';
@@ -103,6 +103,13 @@ export default function DashboardPage() {
   // Get summary statistics
   const summaryStats = getSummaryStats();
 
+  // Calculate grade levels count from raw data
+  const gradeCount = useMemo(() => {
+    if (!rawData || rawData.length === 0) return 0;
+    const uniqueGrades = new Set(rawData.map(record => record.grade));
+    return uniqueGrades.size;
+  }, [rawData]);
+
   const selectedSchoolName = schools.find(school => school.id === selectedSchoolId)?.name || 'All Schools';
 
   // Loading state
@@ -148,6 +155,10 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-1">
                   <span className="font-medium">{summaryStats.avgAbsenceRate.toFixed(1)}%</span>
                   <span>absence rate</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="font-medium">{gradeCount}</span>
+                  <span>grade level{gradeCount !== 1 ? 's' : ''}</span>
                 </div>
                 {dataRange && (
                   <div className="flex items-center gap-1 text-gray-500">

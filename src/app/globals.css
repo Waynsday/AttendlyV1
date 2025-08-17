@@ -1,56 +1,156 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Attendly Brand Design System */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
 
-@layer base {
-  :root {
-    /* Light Theme: White background, blue for contrast */
-    --background: 0 0% 100%; /* white */
-    --foreground: 222.2 47.4% 11.2%; /* dark gray for text */
-
-    --muted: 210 40% 98%; /* very light gray for muted backgrounds */
-    --muted-foreground: 215.4 16.3% 46.9%; /* gray for muted text */
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 47.4% 11.2%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 47.4% 11.2%;
-
-    /* Attendly Brand Colors */
-    --primary: 201 96% 32%; /* #0EA5E9 - Attendly blue */
-    --primary-foreground: 0 0% 100%; /* White */
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --accent: 201 96% 32%; /* Attendly blue for highlights */
-    --accent-foreground: 0 0% 100%;
-
-    --border: 214.3 31.8% 91.4%; /* Light border */
-    --input: 214.3 31.8% 91.4%;
-    --ring: 201 96% 32%; /* Attendly blue focus ring */
-    --radius: 0.5rem;
-
-    /* Additional variables */
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-
-    /* Tier colors for attendance tracking */
-    --tier-1: 145 74% 36%;  /* #16a34a - Green */
-    --tier-2: 43 95% 48%;   /* #eab308 - Yellow */
-    --tier-3: 0 76% 51%;    /* #dc2626 - Red */
-  }
+/* Attendly Brand Colors using Tailwind v4 syntax */
+@theme {
+  /* Colors - Tailwind v4 format */
+  --color-background: #f4f5f7;
+  --color-foreground: #283849;
+  --color-muted: #f4f5f7;
+  --color-muted-foreground: #6b7280;
+  --color-border: #e5e7eb;
+  --color-input: #f4f5f7;
+  --color-ring: #fff361;
+  
+  /* Attendly Primary Brand Colors */
+  --color-primary: #283849;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #9ca3af;
+  --color-secondary-foreground: #283849;
+  
+  /* Attendly Signature Yellow */
+  --color-accent: #fff361;
+  --color-accent-foreground: #101011;
+  
+  /* Card colors */
+  --color-card: #ffffff;
+  --color-card-foreground: #283849;
+  
+  /* Popover colors */
+  --color-popover: #ffffff;
+  --color-popover-foreground: #283849;
+  
+  /* Destructive colors */
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+  
+  /* Educational Data Tier Colors */
+  --color-tier-1: #22c55e;
+  --color-tier-2: #facc15;
+  --color-tier-3: #ef4444;
+  
+  /* Additional Attendly Colors */
+  --color-charcoal: #101011;
+  --color-slate-blue: #364959;
+  
+  /* Neutral colors */
+  --color-neutral-0: #ffffff;
+  --color-neutral-50: #f9fafb;
+  --color-neutral-100: #f4f5f7;
+  --color-neutral-200: #e5e7eb;
+  --color-neutral-300: #d1d5db;
+  --color-neutral-400: #9ca3af;
+  --color-neutral-500: #6b7280;
+  --color-neutral-600: #4b5563;
+  --color-neutral-700: #374151;
+  --color-neutral-800: #1f2937;
+  --color-neutral-900: #111827;
+  
+  /* Primary color variations */
+  --color-primary-50: #f4f5f7;
+  --color-primary-100: #e5e7eb;
+  --color-primary-200: #d1d5db;
+  --color-primary-300: #9ca3af;
+  --color-primary-400: #6b7280;
+  --color-primary-500: #4b5563;
+  --color-primary-600: #364959;
+  --color-primary-700: #283849;
+  --color-primary-800: #1f2937;
+  --color-primary-900: #101011;
+  
+  /* Border radius */
+  --radius: 0.75rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
 }
 
 @layer base {
   * {
-    border-color: hsl(var(--border));
+    @apply border-gray-300;
   }
-
+  
   body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
+    @apply bg-background text-foreground font-medium;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Attendly Typography Hierarchy */
+  h1 {
+    @apply text-3xl font-medium text-primary leading-tight;
+    font-size: 3rem;
+    line-height: 1.2;
+  }
+  
+  h2 {
+    @apply text-2xl font-medium text-primary;
+    font-size: 1.5rem;
+    line-height: 1.3;
+  }
+  
+  h3 {
+    @apply text-xl font-medium text-primary;
+    line-height: 1.4;
+  }
+  
+  p {
+    @apply text-base leading-relaxed;
+  }
+}
+
+/* Custom Attendly Components */
+@layer components {
+  /* Attendly Card Component */
+  .attendly-card {
+    @apply bg-white rounded-lg border-2 border-primary shadow-lg p-6;
+  }
+  
+  /* Attendly Button Component */
+  .attendly-btn {
+    @apply px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105;
+  }
+  
+  .attendly-btn-primary {
+    @apply px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 bg-primary text-white hover:bg-primary-700 shadow-md;
+  }
+  
+  .attendly-btn-secondary {
+    @apply px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 bg-white text-primary border-2 border-primary hover:bg-primary hover:text-white;
+  }
+  
+  .attendly-btn-accent {
+    @apply px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 bg-accent text-accent-foreground hover:bg-yellow-300 shadow-md;
+  }
+  
+  /* Tier Badges */
+  .tier-badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold;
+  }
+  
+  .tier-badge-1 {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200;
+  }
+  
+  .tier-badge-2 {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200;
+  }
+  
+  .tier-badge-3 {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200;
   }
 }
 

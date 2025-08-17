@@ -269,12 +269,12 @@ export default function AttendancePage() {
           </div>
 
           {/* Filter Controls */}
-          <div className="bg-white rounded-lg border p-4">
+          <div className="bg-white rounded-lg border-2 border-primary shadow-lg p-6">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
               <div className="flex flex-wrap items-center gap-4">
                 {/* Search Input */}
                 <div className="flex items-center space-x-2">
-                  <label className="text-sm font-medium text-gray-700">Search:</label>
+                  <label className="text-sm font-medium text-primary">Search:</label>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <input
@@ -282,13 +282,13 @@ export default function AttendancePage() {
                       placeholder="Student name or ID..."
                       value={filters.search || ''}
                       onChange={(e) => handleSearchChange(e.target.value)}
-                      className="pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent w-64"
+                      className="pl-10 pr-4 py-2 border border-primary rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent w-64"
                     />
                   </div>
                 </div>
                 {/* School Selection */}
                 <div className="flex items-center space-x-2">
-                  <label className="text-sm font-medium text-gray-700">School:</label>
+                  <label className="text-sm font-medium text-primary">School:</label>
                   <Select value={filters.schoolId || 'all'} onValueChange={handleSchoolChange}>
                     <SelectTrigger className="w-48">
                       <SelectValue placeholder="Select school..." />
@@ -305,11 +305,11 @@ export default function AttendancePage() {
 
                 {/* Grade Selection */}
                 <div className="flex items-center space-x-2">
-                  <label className="text-sm font-medium text-gray-700">Grade:</label>
+                  <label className="text-sm font-medium text-primary">Grade:</label>
                   <select
                     value={filters.grade || 'all'}
                     onChange={(e) => handleGradeChange(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="px-3 py-2 border border-primary rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
                   >
                     <option value="all">All Grades</option>
                     {availableGrades.map(grade => (
@@ -325,7 +325,7 @@ export default function AttendancePage() {
                 
                 {/* Risk Level Selection */}
                 <div className="flex items-center space-x-2">
-                  <label className="text-sm font-medium text-gray-700">Risk Level:</label>
+                  <label className="text-sm font-medium text-primary">Risk Level:</label>
                   <select
                     value={
                       filters.tier === '1' ? 'low' :
@@ -333,7 +333,7 @@ export default function AttendancePage() {
                       filters.tier === '3' ? 'high' : 'all'
                     }
                     onChange={(e) => handleRiskLevelChange(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="px-3 py-2 border border-primary rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
                   >
                     <option value="all">All Risk Levels</option>
                     <option value="low">Low Risk</option>
@@ -344,7 +344,7 @@ export default function AttendancePage() {
 
                 {/* School Year Selection */}
                 <div className="flex items-center space-x-2">
-                  <label className="text-sm font-medium text-gray-700">School Year:</label>
+                  <label className="text-sm font-medium text-primary">School Year:</label>
                   <Select value={selectedSchoolYear} onValueChange={handleSchoolYearChange}>
                     <SelectTrigger className="w-48">
                       <Calendar className="h-4 w-4 mr-2" />
@@ -384,11 +384,11 @@ export default function AttendancePage() {
             {/* Page Size Selection */}
             <div className="mt-4 flex items-center justify-between border-t pt-4">
               <div className="flex items-center space-x-2">
-                <label className="text-sm font-medium text-gray-700">Rows per page:</label>
+                <label className="text-sm font-medium text-primary">Rows per page:</label>
                 <select
                   value={pageSize}
                   onChange={(e) => setPageSize(parseInt(e.target.value))}
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="px-3 py-1 border border-primary rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -409,7 +409,7 @@ export default function AttendancePage() {
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-primary">
                   Page {currentPage} of {Math.max(1, pagination.totalPages)}
                 </span>
                 

@@ -169,7 +169,7 @@ async function processStudent(student) {
       return [];
     }
     
-    const schoolCode = dbStudent.schools.aeries_school_code.toString().padStart(3, '0');
+    const schoolCode = dbStudent.schools.aeries_school_code.toString();
     
     const summaryData = await getAttendanceSummary(student.aeries_student_id, schoolCode);
     if (summaryData.length === 0) {

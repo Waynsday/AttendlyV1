@@ -8,34 +8,34 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../../utils/cn';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap text-base font-medium ring-offset-background transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center whitespace-nowrap text-base font-medium rounded-lg transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
-        // Primary button - Attendly blue background
-        default: 'bg-primary-500 text-white rounded-button hover:bg-primary-600 focus-visible:ring-primary-500 shadow-button hover:shadow-md hover:transform hover:-translate-y-0.5',
+        // Primary button - Attendly charcoal blue
+        default: 'bg-primary text-primary-foreground hover:bg-primary-700 shadow-md hover:shadow-lg transform hover:scale-105',
         
         // Secondary button - White background with border
-        secondary: 'bg-white text-gray-700 border border-gray-300 rounded-button hover:bg-gray-50 hover:border-gray-400 focus-visible:ring-primary-500 shadow-sm',
+        secondary: 'bg-white text-primary border-2 border-primary hover:bg-primary hover:text-white',
         
-        // Accent CTA button - Also uses primary blue
-        accent: 'bg-primary-500 text-white rounded-button hover:bg-primary-600 focus-visible:ring-primary-500 shadow-button hover:shadow-md font-semibold',
+        // Accent CTA button - Attendly yellow
+        accent: 'bg-accent text-accent-foreground hover:bg-yellow-300 shadow-md hover:shadow-lg transform hover:scale-105',
         
         // Ghost button - transparent background
-        ghost: 'bg-transparent text-gray-700 rounded-button hover:bg-gray-50 focus-visible:ring-primary-500',
+        ghost: 'bg-transparent text-primary hover:bg-neutral-100 hover:text-primary-800',
         
         // Outline button - border only
-        outline: 'border border-primary-500 bg-transparent text-primary-500 rounded-button hover:bg-primary-50 hover:text-primary-600 focus-visible:ring-primary-500',
+        outline: 'border-2 border-primary bg-transparent text-primary hover:bg-primary hover:text-white',
         
         // Destructive button - for deletion actions
-        destructive: 'bg-error-500 text-white rounded-button hover:bg-error-600 focus-visible:ring-error-500 shadow-button',
+        destructive: 'bg-red-500 text-white hover:bg-red-600 shadow-md',
         
         // Link button - text only
-        link: 'text-primary-500 underline-offset-4 hover:underline focus-visible:ring-primary-500 rounded',
+        link: 'text-primary underline-offset-4 hover:underline',
       },
       size: {
         // Default size - matches Attendly buttons
-        default: 'px-6 py-2.5',
+        default: 'px-6 py-3',
         
         // Small size
         sm: 'px-4 py-2 text-sm',

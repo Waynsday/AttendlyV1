@@ -71,6 +71,9 @@ interface StudentDetailSidebarProps {
 }
 
 export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetailSidebarProps) {
+  // State for showing all interventions
+  const [showAllInterventions, setShowAllInterventions] = React.useState(false);
+
   // DEBUG: Log when component is called
   console.log('🔍 StudentDetailSidebar called:', { 
     studentExists: !!student, 
@@ -100,6 +103,11 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
 
   // Get intervention statistics
   const interventionStats = useInterventionStats(interventions);
+
+  // Reset showAllInterventions when sidebar opens/closes or student changes
+  React.useEffect(() => {
+    setShowAllInterventions(false);
+  }, [isOpen, student?.id]);
 
   // Debug logging for interventions
   React.useEffect(() => {
@@ -218,28 +226,10 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
         }}
       >
         {/* Header */}
-        <div 
-          className="sticky top-0 bg-white border-b px-8 py-6 flex items-center justify-between" 
-          style={{ 
-            flexShrink: 0, 
-            zIndex: 10,
-            borderBottomColor: '#e5e7eb',
-            backgroundColor: '#fafbfc'
-          }}
-        >
+        <div className="sticky top-0 bg-white border-b-2 border-primary px-6 py-4 flex items-center justify-between">
           <div>
-            <h2 
-              className="text-2xl font-semibold text-gray-900 mb-1"
-              style={{ color: '#1f2937', fontWeight: 600 }}
-            >
-              {student.name}
-            </h2>
-            <p 
-              className="text-sm text-gray-500"
-              style={{ color: '#6b7280' }}
-            >
-              Student ID: {student.studentId} • Grade {student.grade}
-            </p>
+            <h2 className="text-xl font-semibold text-primary">{student.name}</h2>
+            <p className="text-sm text-muted-foreground">ID: {student.studentId} • Grade {student.grade}</p>
           </div>
           <Button
             variant="ghost"
@@ -247,23 +237,19 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
             onClick={onClose}
             aria-label="Close student details"
             className="hover:bg-gray-100 rounded-full"
-            style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%'
-            }}
           >
             <X className="h-5 w-5 text-gray-500" />
           </Button>
         </div>
 
-        <div className="flex-1 overflow-y-auto max-h-[calc(100vh-120px)] px-6 py-4 space-y-6">
+        <div className="p-6 space-y-6">
 
           {/* Overview Stats */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Overview
-            </h3>
+          <Card className="bg-white border-2 border-primary shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-lg text-primary">Overview</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
             <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="text-center">
                 <div className="text-3xl font-bold mb-1 text-primary">
@@ -303,17 +289,21 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
             
             <div className="pt-4">
               <span className="text-sm text-muted-foreground">
-                <span className="font-medium text-gray-700">Teacher:</span> {student.teacher}
+                <span className="font-medium text-primary">Teacher:</span> {student.teacher}
               </span>
             </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Attendance Details */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <CalendarX className="h-5 w-5 text-primary" />
-              Attendance Details
-            </h3>
+          <Card className="bg-white border-2 border-primary shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-lg text-primary flex items-center gap-2">
+                <CalendarX className="h-5 w-5" />
+                Attendance Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
             <div>
               {attendanceDetails.loading ? (
                 <div className="flex items-center justify-center py-4">
@@ -384,7 +374,8 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
                 </div>
               )}
             </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* iReady Scores */}
           {student.iReadyScores && student.iReadyScores.length > 0 && (
@@ -502,10 +493,10 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
                 {/* Recent Interventions */}
                 <div className="space-y-3">
                   <h4 className="text-sm font-medium text-gray-700">
-                    Recent Interventions ({Math.min(5, interventions.length)})
+                    {showAllInterventions ? `All Interventions (${interventions.length})` : `Recent Interventions (${Math.min(3, interventions.length)})`}
                   </h4>
-                  <div className="max-h-80 overflow-y-auto space-y-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                    {interventions.slice(0, 5).map((intervention, index) => (
+                  <div className={`space-y-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 ${showAllInterventions ? 'max-h-96 overflow-y-auto' : ''}`}>
+                    {(showAllInterventions ? interventions : interventions.slice(0, 3)).map((intervention, index) => (
                       <div 
                         key={intervention.id} 
                         className="border-l-4 pl-4 py-3 rounded-r-lg"
@@ -552,15 +543,16 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
                   </div>
                 </div>
 
-                {/* View All Button */}
-                {interventions.length > 5 && (
+                {/* View All / Show Less Button */}
+                {interventions.length > 3 && (
                   <div className="text-center pt-4 border-t border-gray-100">
                     <Button
                       variant="outline"
                       size="sm"
                       className="text-sm"
+                      onClick={() => setShowAllInterventions(!showAllInterventions)}
                     >
-                      View All {interventions.length} Interventions
+                      {showAllInterventions ? 'Show Less' : `View All ${interventions.length} Interventions`}
                     </Button>
                   </div>
                 )}
