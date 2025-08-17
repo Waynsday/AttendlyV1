@@ -12,6 +12,45 @@ import { StudentDetailSidebar } from '../../presentation/components/StudentDetai
 import { Button } from '../../presentation/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../presentation/components/ui/select';
 import { cn } from '../../presentation/utils/cn';
+
+// iReady formatting functions (matching StudentDetailCard)
+const formatPlacement = (placement: string): string => {
+  const placements: Record<string, string> = {
+    'THREE_OR_MORE_GRADE_LEVELS_BELOW': '3+ Levels Below',
+    'TWO_GRADE_LEVELS_BELOW': '2 Levels Below',
+    'ONE_GRADE_LEVEL_BELOW': '1 Level Below',
+    'ON_GRADE_LEVEL': 'On Grade Level',
+    'ONE_GRADE_LEVEL_ABOVE': '1 Level Above',
+    'TWO_GRADE_LEVELS_ABOVE': '2 Levels Above',
+    'THREE_OR_MORE_GRADE_LEVELS_ABOVE': '3+ Levels Above'
+  };
+  return placements[placement] || placement;
+};
+
+// Force Tailwind to include these classes in production build
+// Classes: text-red-600 bg-red-50 text-green-600 bg-green-50 text-blue-600 bg-blue-50 text-gray-600 bg-gray-50
+const getPlacementColor = (placement: string): string => {
+  // Use explicit class mapping to ensure Tailwind includes these in production build
+  const colorMap: Record<string, string> = {
+    '3+ Levels Below': 'text-red-600 bg-red-50',
+    '2 Levels Below': 'text-red-600 bg-red-50',
+    '1 Level Below': 'text-red-600 bg-red-50',
+    'On Grade Level': 'text-blue-600 bg-blue-50',
+    '1 Level Above': 'text-green-600 bg-green-50',
+    '2 Levels Above': 'text-green-600 bg-green-50',
+    '3+ Levels Above': 'text-green-600 bg-green-50'
+  };
+  
+  // Fallback to the previous logic for any unmapped values
+  if (colorMap[placement]) {
+    return colorMap[placement];
+  }
+  
+  if (placement.includes('Below')) return 'text-red-600 bg-red-50';
+  if (placement.includes('Above')) return 'text-green-600 bg-green-50';
+  if (placement.includes('On Grade Level')) return 'text-blue-600 bg-blue-50';
+  return 'text-gray-600 bg-gray-50';
+};
 import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, Calendar, RefreshCw, Search } from 'lucide-react';
 import { useStudentsData } from '../../presentation/hooks/useStudentsData';
 import { useDashboardData } from '../../presentation/hooks/useDashboardData';
@@ -97,6 +136,16 @@ const mockUser = {
   role: 'teacher',
   school: 'Romoland School District'
 };
+
+// Hidden component to force Tailwind to include these classes
+const TailwindClassPreserver = () => (
+  <div className="hidden">
+    <span className="text-red-600 bg-red-50">.</span>
+    <span className="text-green-600 bg-green-50">.</span>
+    <span className="text-blue-600 bg-blue-50">.</span>
+    <span className="text-gray-600 bg-gray-50">.</span>
+  </div>
+);
 
 export default function AttendancePage() {
   console.log('🔍 ATTENDANCE PAGE: Component rendering');
@@ -213,9 +262,22 @@ export default function AttendancePage() {
     setSortColumn(newDirection ? column : null);
     setSortDirection(newDirection);
 
+    // Map frontend column names to backend database column names
+    const mapColumnToBackend = (frontendColumn: string): string => {
+      const columnMap: Record<string, string> = {
+        'ireadyElaScore': 'iready_ela_score',
+        'ireadyMathScore': 'iready_math_score',
+        'attendanceRate': 'attendance_rate',
+        'name': 'full_name',
+        'grade': 'grade_level'
+      };
+      return columnMap[frontendColumn] || frontendColumn;
+    };
+
     // Use server-side sorting
     if (newDirection) {
-      setSorting(column as string, newDirection);
+      const backendColumn = mapColumnToBackend(column as string);
+      setSorting(backendColumn, newDirection);
     } else {
       // Reset to default sorting (Tier 3 first, then alphabetical)
       setSorting('default', 'asc');
@@ -528,7 +590,12 @@ export default function AttendancePage() {
                             <div>
                               <div className="text-sm font-medium text-primary">{student.ireadyElaScore}</div>
                               {student.ireadyElaPlacement && (
-                                <div className="text-xs text-muted-foreground">{student.ireadyElaPlacement}</div>
+                                <div className={cn(
+                                  "inline-block px-2 py-1 rounded-full text-xs font-medium mt-1",
+                                  getPlacementColor(formatPlacement(student.ireadyElaPlacement))
+                                )}>
+                                  {formatPlacement(student.ireadyElaPlacement)}
+                                </div>
                               )}
                             </div>
                           ) : (
@@ -540,7 +607,12 @@ export default function AttendancePage() {
                             <div>
                               <div className="text-sm font-medium text-primary">{student.ireadyMathScore}</div>
                               {student.ireadyMathPlacement && (
-                                <div className="text-xs text-muted-foreground">{student.ireadyMathPlacement}</div>
+                                <div className={cn(
+                                  "inline-block px-2 py-1 rounded-full text-xs font-medium mt-1",
+                                  getPlacementColor(formatPlacement(student.ireadyMathPlacement))
+                                )}>
+                                  {formatPlacement(student.ireadyMathPlacement)}
+                                </div>
                               )}
                             </div>
                           ) : (
@@ -605,6 +677,9 @@ export default function AttendancePage() {
         isOpen={sidebarOpen}
         onClose={handleSidebarClose}
       />
+      
+      {/* Hidden component to preserve Tailwind classes */}
+      <TailwindClassPreserver />
     </>
   );
 }
