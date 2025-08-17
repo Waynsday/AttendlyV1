@@ -205,7 +205,7 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
       {/* Sidebar */}
       <div 
         className={cn(
-          'fixed right-0 top-0 h-full w-96 bg-white shadow-xl transform transition-transform duration-300 ease-in-out z-50 overflow-y-auto',
+          'fixed right-0 top-0 h-full w-full md:w-full lg:w-1/2 bg-white shadow-xl transform transition-transform duration-300 ease-in-out z-50 overflow-y-auto',
           isOpen ? 'translate-x-0' : 'translate-x-full'
         )}
         style={{
@@ -213,7 +213,6 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
           right: 0,
           top: 0,
           height: '100vh',
-          width: '420px',
           backgroundColor: '#ffffff',
           zIndex: 50,
           transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
@@ -226,7 +225,7 @@ export function StudentDetailSidebar({ student, isOpen, onClose }: StudentDetail
         }}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b-2 border-primary px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-white border-b-2 border-primary px-6 py-4 flex items-center justify-between z-10">
           <div>
             <h2 className="text-xl font-semibold text-primary">{student.name}</h2>
             <div className="text-sm text-muted-foreground">
