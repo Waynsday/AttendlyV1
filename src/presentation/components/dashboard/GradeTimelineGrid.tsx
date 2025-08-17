@@ -129,6 +129,19 @@ export function GradeTimelineGrid({
     }
   }
 
+  const getGradeName = (gradeLevel: number): string => {
+    switch (gradeLevel) {
+      case -2:
+        return 'Preschool'
+      case -1:
+        return 'Transitional Kindergarten'
+      case 0:
+        return 'Kindergarten'
+      default:
+        return `Grade ${gradeLevel}`
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -215,7 +228,7 @@ export function GradeTimelineGrid({
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">
-                  Grade {grade.grade}
+                  {getGradeName(grade.grade)}
                 </CardTitle>
                 <div className="flex items-center gap-2">
                   {getTrendIcon(grade.trend)}
@@ -274,36 +287,6 @@ export function GradeTimelineGrid({
         ))}
       </div>
 
-      {/* Summary Stats */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Summary Statistics</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">
-              {gradeData.reduce((sum, g) => sum + g.totalStudents, 0).toLocaleString()}
-            </div>
-            <div className="text-sm text-gray-600">Total Students</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-orange-600">
-              {gradeData.reduce((sum, g) => sum + g.totalAbsences, 0).toLocaleString()}
-            </div>
-            <div className="text-sm text-gray-600">Total Absences</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">
-              {((gradeData.reduce((sum, g) => sum + g.avgAbsenceRate, 0) / gradeData.length) || 0).toFixed(1)}%
-            </div>
-            <div className="text-sm text-gray-600">Avg Absence Rate</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600">
-              {gradeData.length}
-            </div>
-            <div className="text-sm text-gray-600">Grade Levels</div>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }

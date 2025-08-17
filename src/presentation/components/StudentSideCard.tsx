@@ -11,6 +11,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronDown, ChevronUp, TrendingUp, TrendingDown, AlertTriangle, RefreshCw } from 'lucide-react';
 import { cn } from '../utils/cn';
+import { IReadyHistoryCard } from './IReadyHistoryCard';
 
 // ============================================================================
 // TYPES AND INTERFACES
@@ -71,6 +72,7 @@ interface StudentData {
 interface SectionState {
   attendanceHistory: boolean;
   iReadyScores: boolean;
+  iReadyHistory: boolean;
   interventions: boolean;
 }
 
@@ -312,6 +314,7 @@ export const StudentSideCard: React.FC<StudentSideCardProps> = ({
   const [expandedSections, setExpandedSections] = useState<SectionState>({
     attendanceHistory: true,
     iReadyScores: true,
+    iReadyHistory: true,
     interventions: false,
   });
   const [announcements, setAnnouncements] = useState<string>('');
@@ -338,6 +341,7 @@ export const StudentSideCard: React.FC<StudentSideCardProps> = ({
     const sectionNames = {
       attendanceHistory: 'Attendance history',
       iReadyScores: 'iReady scores',
+      iReadyHistory: 'iReady assessment history',
       interventions: 'Interventions'
     };
     
@@ -579,6 +583,12 @@ export const StudentSideCard: React.FC<StudentSideCardProps> = ({
                       </div>
                     )}
                   </div>
+
+                  {/* iReady Assessment History */}
+                  <IReadyHistoryCard 
+                    studentId={studentId}
+                    className="mt-6"
+                  />
 
                   {/* Interventions */}
                   <div

@@ -1,77 +1,84 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /* Attendly Brand Design System */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
 
-@layer base {
-  :root {
-    /* Attendly Brand Colors - Light Theme */
-    --background: 244 245 247; /* #F4F5F7 - Light gray background */
-    --foreground: 218.8 52.4% 22.2%; /* #283849 - Dark blue-gray text */
-    
-    --muted: 244 245 247; /* #F4F5F7 - Light gray for muted elements */
-    --muted-foreground: 218.8 30% 50%; /* Lighter version of foreground */
-    
-    --popover: 0 0% 100%; /* #FFFFFF - White */
-    --popover-foreground: 218.8 52.4% 22.2%;
-    
-    --card: 0 0% 100%; /* #FFFFFF - White cards */
-    --card-foreground: 218.8 52.4% 22.2%;
-    
-    /* Attendly Primary Brand Colors */
-    --primary: 218.8 52.4% 22.2%; /* #283849 - Charcoal blue */
-    --primary-foreground: 0 0% 100%; /* White text on primary */
-    
-    --secondary: 218.8 30% 60%; /* Lighter version of primary */
-    --secondary-foreground: 218.8 52.4% 22.2%;
-    
-    /* Attendly Signature Yellow */
-    --accent: 56 100% 76%; /* #FFF361 - Bright yellow */
-    --accent-foreground: 215.3 6.7% 6.7%; /* #101011 - Near black */
-    
-    --border: 218.8 15% 85%; /* Light border color */
-    --input: 244 245 247; /* Light input background */
-    --ring: 56 100% 76%; /* Yellow focus ring */
-    --radius: 0.75rem; /* 12px - Attendly's border radius */
-    
-    /* Educational Data Tier Colors */
-    --tier-1: 142 71% 45%;  /* #22c55e - Success/Good attendance */
-    --tier-2: 43 96% 56%;   /* #facc15 - Warning/At-risk */
-    --tier-3: 0 84% 60%;    /* #ef4444 - Error/Critical */
-    
-    /* Additional Attendly Colors */
-    --charcoal: 215.3 6.7% 6.7%; /* #101011 - Dark charcoal */
-    --slate-blue: 218.8 38% 34%; /* #364959 - Medium slate blue */
-    
-    /* Typography Scale (matching Attendly) */
-    --font-size-xs: 0.75rem;   /* 12px */
-    --font-size-sm: 0.875rem;  /* 14px */
-    --font-size-base: 1rem;    /* 16px */
-    --font-size-lg: 1.125rem;  /* 18px */
-    --font-size-xl: 1.25rem;   /* 20px */
-    --font-size-2xl: 1.5rem;   /* 24px */
-    --font-size-3xl: 3rem;     /* 48px - H1 */
-    --font-size-4xl: 3.375rem; /* 54px - Display */
-    
-    /* Spacing Scale (8px grid) */
-    --spacing-1: 0.125rem;  /* 2px */
-    --spacing-2: 0.25rem;   /* 4px */
-    --spacing-3: 0.5rem;    /* 8px */
-    --spacing-4: 0.75rem;   /* 12px */
-    --spacing-5: 1rem;      /* 16px */
-    --spacing-6: 1.5rem;    /* 24px */
-    --spacing-8: 2rem;      /* 32px */
-    --spacing-10: 2.5rem;   /* 40px */
-    --spacing-12: 3rem;     /* 48px */
-    --spacing-16: 4rem;     /* 64px */
-  }
+/* Attendly Brand Colors using Tailwind v4 syntax */
+@theme {
+  /* Colors - Tailwind v4 format */
+  --color-background: #f4f5f7;
+  --color-foreground: #283849;
+  --color-muted: #f4f5f7;
+  --color-muted-foreground: #6b7280;
+  --color-border: #e5e7eb;
+  --color-input: #f4f5f7;
+  --color-ring: #fff361;
+  
+  /* Attendly Primary Brand Colors */
+  --color-primary: #283849;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #9ca3af;
+  --color-secondary-foreground: #283849;
+  
+  /* Attendly Signature Yellow */
+  --color-accent: #fff361;
+  --color-accent-foreground: #101011;
+  
+  /* Card colors */
+  --color-card: #ffffff;
+  --color-card-foreground: #283849;
+  
+  /* Popover colors */
+  --color-popover: #ffffff;
+  --color-popover-foreground: #283849;
+  
+  /* Destructive colors */
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+  
+  /* Educational Data Tier Colors */
+  --color-tier-1: #22c55e;
+  --color-tier-2: #facc15;
+  --color-tier-3: #ef4444;
+  
+  /* Additional Attendly Colors */
+  --color-charcoal: #101011;
+  --color-slate-blue: #364959;
+  
+  /* Neutral colors */
+  --color-neutral-0: #ffffff;
+  --color-neutral-50: #f9fafb;
+  --color-neutral-100: #f4f5f7;
+  --color-neutral-200: #e5e7eb;
+  --color-neutral-300: #d1d5db;
+  --color-neutral-400: #9ca3af;
+  --color-neutral-500: #6b7280;
+  --color-neutral-600: #4b5563;
+  --color-neutral-700: #374151;
+  --color-neutral-800: #1f2937;
+  --color-neutral-900: #111827;
+  
+  /* Primary color variations */
+  --color-primary-50: #f4f5f7;
+  --color-primary-100: #e5e7eb;
+  --color-primary-200: #d1d5db;
+  --color-primary-300: #9ca3af;
+  --color-primary-400: #6b7280;
+  --color-primary-500: #4b5563;
+  --color-primary-600: #364959;
+  --color-primary-700: #283849;
+  --color-primary-800: #1f2937;
+  --color-primary-900: #101011;
+  
+  /* Border radius */
+  --radius: 0.75rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
 }
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-gray-300;
   }
   
   body {
@@ -84,48 +91,100 @@
   
   /* Attendly Typography Hierarchy */
   h1 {
-    @apply text-4xl font-medium text-charcoal-900 leading-tight;
-    font-size: var(--font-size-3xl);
+    @apply text-3xl font-medium text-primary leading-tight;
+    font-size: 3rem;
     line-height: 1.2;
   }
   
   h2 {
-    @apply text-2xl font-medium text-charcoal-900;
-    font-size: var(--font-size-2xl);
+    @apply text-2xl font-medium text-primary;
+    font-size: 1.5rem;
     line-height: 1.3;
   }
   
   h3 {
-    @apply text-xl font-medium text-charcoal-900;
+    @apply text-xl font-medium text-primary;
     line-height: 1.4;
   }
   
   p {
-    @apply text-base text-foreground;
-    line-height: 1.6;
+    @apply text-base leading-relaxed;
+  }
+}
+
+/* Custom Attendly Components */
+@layer components {
+  /* Attendly Card Component */
+  .attendly-card {
+    @apply bg-white rounded-lg border-2 border-primary shadow-lg p-6;
   }
   
-  /* Base component improvements for educational data */
-  .attendance-card {
-    @apply bg-card border border-border rounded-xl p-6 shadow-sm;
-    transition: all 0.2s ease-in-out;
+  /* Attendly Button Component */
+  .attendly-btn {
+    @apply px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105;
   }
   
-  .attendance-card:hover {
-    @apply shadow-md;
-    transform: translateY(-1px);
+  .attendly-btn-primary {
+    @apply px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 bg-primary text-white hover:bg-primary-700 shadow-md;
   }
   
-  /* Tier-specific styling for educational metrics */
-  .tier-1 {
-    @apply border-l-4 border-l-green-500;
+  .attendly-btn-secondary {
+    @apply px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 bg-white text-primary border-2 border-primary hover:bg-primary hover:text-white;
   }
   
-  .tier-2 {
-    @apply border-l-4 border-l-yellow-500;
+  .attendly-btn-accent {
+    @apply px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 bg-accent text-accent-foreground hover:bg-yellow-300 shadow-md;
   }
   
-  .tier-3 {
-    @apply border-l-4 border-l-red-500;
+  /* Tier Badges */
+  .tier-badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold;
+  }
+  
+  .tier-badge-1 {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200;
+  }
+  
+  .tier-badge-2 {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200;
+  }
+  
+  .tier-badge-3 {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200;
+  }
+}
+
+/* Custom scrollbar styles */
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(209 213 219) rgb(243 244 246);
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: rgb(243 244 246);
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgb(209 213 219);
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: rgb(156 163 175);
+  }
+
+  .scrollbar-thumb-gray-300::-webkit-scrollbar-thumb {
+    background: rgb(209 213 219);
+  }
+
+  .scrollbar-track-gray-100::-webkit-scrollbar-track {
+    background: rgb(243 244 246);
   }
 }

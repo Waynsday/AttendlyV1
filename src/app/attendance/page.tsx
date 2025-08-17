@@ -12,6 +12,45 @@ import { StudentDetailSidebar } from '../../presentation/components/StudentDetai
 import { Button } from '../../presentation/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../presentation/components/ui/select';
 import { cn } from '../../presentation/utils/cn';
+
+// iReady formatting functions (matching StudentDetailCard)
+const formatPlacement = (placement: string): string => {
+  const placements: Record<string, string> = {
+    'THREE_OR_MORE_GRADE_LEVELS_BELOW': '3+ Levels Below',
+    'TWO_GRADE_LEVELS_BELOW': '2 Levels Below',
+    'ONE_GRADE_LEVEL_BELOW': '1 Level Below',
+    'ON_GRADE_LEVEL': 'On Grade Level',
+    'ONE_GRADE_LEVEL_ABOVE': '1 Level Above',
+    'TWO_GRADE_LEVELS_ABOVE': '2 Levels Above',
+    'THREE_OR_MORE_GRADE_LEVELS_ABOVE': '3+ Levels Above'
+  };
+  return placements[placement] || placement;
+};
+
+// Force Tailwind to include these classes in production build
+// Classes: text-red-600 bg-red-50 text-green-600 bg-green-50 text-blue-600 bg-blue-50 text-gray-600 bg-gray-50
+const getPlacementColor = (placement: string): string => {
+  // Use explicit class mapping to ensure Tailwind includes these in production build
+  const colorMap: Record<string, string> = {
+    '3+ Levels Below': 'text-red-600 bg-red-50',
+    '2 Levels Below': 'text-red-600 bg-red-50',
+    '1 Level Below': 'text-red-600 bg-red-50',
+    'On Grade Level': 'text-blue-600 bg-blue-50',
+    '1 Level Above': 'text-green-600 bg-green-50',
+    '2 Levels Above': 'text-green-600 bg-green-50',
+    '3+ Levels Above': 'text-green-600 bg-green-50'
+  };
+  
+  // Fallback to the previous logic for any unmapped values
+  if (colorMap[placement]) {
+    return colorMap[placement];
+  }
+  
+  if (placement.includes('Below')) return 'text-red-600 bg-red-50';
+  if (placement.includes('Above')) return 'text-green-600 bg-green-50';
+  if (placement.includes('On Grade Level')) return 'text-blue-600 bg-blue-50';
+  return 'text-gray-600 bg-gray-50';
+};
 import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, Calendar, RefreshCw, Search } from 'lucide-react';
 import { useStudentsData } from '../../presentation/hooks/useStudentsData';
 import { useDashboardData } from '../../presentation/hooks/useDashboardData';
@@ -83,6 +122,8 @@ const columns: Column[] = [
   { key: 'attendanceRate', label: 'Attendance %', sortable: true },
   { key: 'absences', label: 'Absences', sortable: true },
   { key: 'tardies', label: 'Tardies', sortable: true },
+  { key: 'ireadyElaScore', label: 'iReady ELA', sortable: true, className: 'min-w-32' },
+  { key: 'ireadyMathScore', label: 'iReady Math', sortable: true, className: 'min-w-32' },
   { key: 'tier', label: 'Risk Level', sortable: false },
   { key: 'lastIntervention', label: 'Latest Intervention', sortable: false },
 ];
@@ -96,7 +137,19 @@ const mockUser = {
   school: 'Romoland School District'
 };
 
+// Hidden component to force Tailwind to include these classes
+const TailwindClassPreserver = () => (
+  <div className="hidden">
+    <span className="text-red-600 bg-red-50">.</span>
+    <span className="text-green-600 bg-green-50">.</span>
+    <span className="text-blue-600 bg-blue-50">.</span>
+    <span className="text-gray-600 bg-gray-50">.</span>
+  </div>
+);
+
 export default function AttendancePage() {
+  console.log('🔍 ATTENDANCE PAGE: Component rendering');
+  
   // School year state - matches dashboard
   const [selectedSchoolYear, setSelectedSchoolYear] = React.useState<string>('2024');
   
@@ -143,8 +196,16 @@ export default function AttendancePage() {
 
   // Handle student selection
   const handleStudentClick = (student: StudentData) => {
+    console.log('🔍 ATTENDANCE PAGE: Student clicked!', {
+      studentName: student.name,
+      studentId: student.id,
+      aeriesId: student.studentId
+    });
+    
     setSelectedStudent(student);
     setSidebarOpen(true);
+    
+    console.log('🔍 ATTENDANCE PAGE: State updated - sidebarOpen should be true');
   };
 
   // Handle sidebar close
@@ -162,7 +223,16 @@ export default function AttendancePage() {
     setFilters({ ...filters, grade });
   };
 
-  const handleTierChange = (tier: string) => {
+  const handleRiskLevelChange = (riskLevel: string) => {
+    // Map risk level to tier values that the API expects
+    let tier = 'all';
+    if (riskLevel !== 'all') {
+      switch(riskLevel) {
+        case 'low': tier = '1'; break;
+        case 'medium': tier = '2'; break;
+        case 'high': tier = '3'; break;
+      }
+    }
     setFilters({ ...filters, tier });
   };
 
@@ -192,9 +262,22 @@ export default function AttendancePage() {
     setSortColumn(newDirection ? column : null);
     setSortDirection(newDirection);
 
+    // Map frontend column names to backend database column names
+    const mapColumnToBackend = (frontendColumn: string): string => {
+      const columnMap: Record<string, string> = {
+        'ireadyElaScore': 'iready_ela_score',
+        'ireadyMathScore': 'iready_math_score',
+        'attendanceRate': 'attendance_rate',
+        'name': 'full_name',
+        'grade': 'grade_level'
+      };
+      return columnMap[frontendColumn] || frontendColumn;
+    };
+
     // Use server-side sorting
     if (newDirection) {
-      setSorting(column as string, newDirection);
+      const backendColumn = mapColumnToBackend(column as string);
+      setSorting(backendColumn, newDirection);
     } else {
       // Reset to default sorting (Tier 3 first, then alphabetical)
       setSorting('default', 'asc');
@@ -230,6 +313,11 @@ export default function AttendancePage() {
     return ['-2', '-1', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
   }, []);
 
+  console.log('🔍 ATTENDANCE PAGE: About to render, state:', { 
+    selectedStudent: selectedStudent?.name, 
+    sidebarOpen 
+  });
+
   return (
     <>
       <DashboardLayout user={mockUser} onLogout={() => {}}>
@@ -238,17 +326,17 @@ export default function AttendancePage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-primary">Student Attendance Details</h1>
             <p className="text-muted-foreground">
-              Monitor student attendance rates, risk tier assignments, and intervention history
+              Monitor student attendance rates, risk level assessments, and intervention history
             </p>
           </div>
 
           {/* Filter Controls */}
-          <div className="bg-white rounded-lg border p-4">
+          <div className="bg-white rounded-lg border-2 border-primary shadow-lg p-6">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
               <div className="flex flex-wrap items-center gap-4">
                 {/* Search Input */}
                 <div className="flex items-center space-x-2">
-                  <label className="text-sm font-medium text-gray-700">Search:</label>
+                  <label className="text-sm font-medium text-primary">Search:</label>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <input
@@ -256,13 +344,13 @@ export default function AttendancePage() {
                       placeholder="Student name or ID..."
                       value={filters.search || ''}
                       onChange={(e) => handleSearchChange(e.target.value)}
-                      className="pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent w-64"
+                      className="pl-10 pr-4 py-2 border border-primary rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent w-64"
                     />
                   </div>
                 </div>
                 {/* School Selection */}
                 <div className="flex items-center space-x-2">
-                  <label className="text-sm font-medium text-gray-700">School:</label>
+                  <label className="text-sm font-medium text-primary">School:</label>
                   <Select value={filters.schoolId || 'all'} onValueChange={handleSchoolChange}>
                     <SelectTrigger className="w-48">
                       <SelectValue placeholder="Select school..." />
@@ -279,11 +367,11 @@ export default function AttendancePage() {
 
                 {/* Grade Selection */}
                 <div className="flex items-center space-x-2">
-                  <label className="text-sm font-medium text-gray-700">Grade:</label>
+                  <label className="text-sm font-medium text-primary">Grade:</label>
                   <select
                     value={filters.grade || 'all'}
                     onChange={(e) => handleGradeChange(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="px-3 py-2 border border-primary rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
                   >
                     <option value="all">All Grades</option>
                     {availableGrades.map(grade => (
@@ -297,24 +385,28 @@ export default function AttendancePage() {
                   </select>
                 </div>
                 
-                {/* Tier Selection */}
+                {/* Risk Level Selection */}
                 <div className="flex items-center space-x-2">
-                  <label className="text-sm font-medium text-gray-700">Tier:</label>
+                  <label className="text-sm font-medium text-primary">Risk Level:</label>
                   <select
-                    value={filters.tier || 'all'}
-                    onChange={(e) => handleTierChange(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    value={
+                      filters.tier === '1' ? 'low' :
+                      filters.tier === '2' ? 'medium' :
+                      filters.tier === '3' ? 'high' : 'all'
+                    }
+                    onChange={(e) => handleRiskLevelChange(e.target.value)}
+                    className="px-3 py-2 border border-primary rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
                   >
-                    <option value="all">All Tiers</option>
-                    <option value="1">Tier 1</option>
-                    <option value="2">Tier 2</option>
-                    <option value="3">Tier 3</option>
+                    <option value="all">All Risk Levels</option>
+                    <option value="low">Low Risk</option>
+                    <option value="medium">Medium Risk</option>
+                    <option value="high">High Risk</option>
                   </select>
                 </div>
 
                 {/* School Year Selection */}
                 <div className="flex items-center space-x-2">
-                  <label className="text-sm font-medium text-gray-700">School Year:</label>
+                  <label className="text-sm font-medium text-primary">School Year:</label>
                   <Select value={selectedSchoolYear} onValueChange={handleSchoolYearChange}>
                     <SelectTrigger className="w-48">
                       <Calendar className="h-4 w-4 mr-2" />
@@ -323,10 +415,7 @@ export default function AttendancePage() {
                     <SelectContent>
                       {schoolYears.map((year) => (
                         <SelectItem key={year.value} value={year.value}>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{year.label}</span>
-                            <span className="text-xs text-gray-500">{year.description}</span>
-                          </div>
+                          <span className="font-medium">{year.label}</span>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -354,11 +443,11 @@ export default function AttendancePage() {
             {/* Page Size Selection */}
             <div className="mt-4 flex items-center justify-between border-t pt-4">
               <div className="flex items-center space-x-2">
-                <label className="text-sm font-medium text-gray-700">Rows per page:</label>
+                <label className="text-sm font-medium text-primary">Rows per page:</label>
                 <select
                   value={pageSize}
                   onChange={(e) => setPageSize(parseInt(e.target.value))}
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="px-3 py-1 border border-primary rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -379,8 +468,8 @@ export default function AttendancePage() {
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 
-                <span className="text-sm text-gray-700">
-                  Page {currentPage} of {pagination.totalPages}
+                <span className="text-sm text-primary">
+                  Page {currentPage} of {Math.max(1, pagination.totalPages)}
                 </span>
                 
                 <Button
@@ -497,18 +586,57 @@ export default function AttendancePage() {
                           {student.tardies || 0}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
+                          {student.ireadyElaScore ? (
+                            <div>
+                              <div className="text-sm font-medium text-primary">{student.ireadyElaScore}</div>
+                              {student.ireadyElaPlacement && (
+                                <div className={cn(
+                                  "inline-block px-2 py-1 rounded-full text-xs font-medium mt-1",
+                                  getPlacementColor(formatPlacement(student.ireadyElaPlacement))
+                                )}>
+                                  {formatPlacement(student.ireadyElaPlacement)}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">No data</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {student.ireadyMathScore ? (
+                            <div>
+                              <div className="text-sm font-medium text-primary">{student.ireadyMathScore}</div>
+                              {student.ireadyMathPlacement && (
+                                <div className={cn(
+                                  "inline-block px-2 py-1 rounded-full text-xs font-medium mt-1",
+                                  getPlacementColor(formatPlacement(student.ireadyMathPlacement))
+                                )}>
+                                  {formatPlacement(student.ireadyMathPlacement)}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">No data</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <TierBadge tier={student.tier} />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {student.lastIntervention ? (
-                            <div>
+                            <div className="max-w-48">
                               <div className="text-sm font-medium text-primary">{student.lastIntervention}</div>
                               {student.interventionDate && (
-                                <div className="text-xs text-muted-foreground">{student.interventionDate}</div>
+                                <div className="text-xs text-muted-foreground">{new Date(student.interventionDate).toLocaleDateString()}</div>
+                              )}
+                              {student.interventionDescription && (
+                                <div className="text-xs text-gray-600 truncate" title={student.interventionDescription}>
+                                  {student.interventionDescription}
+                                </div>
                               )}
                             </div>
                           ) : (
-                            <span className="text-sm text-muted-foreground">None</span>
+                            <span className="text-sm text-muted-foreground">No interventions</span>
                           )}
                         </td>
                       </tr>
@@ -549,6 +677,9 @@ export default function AttendancePage() {
         isOpen={sidebarOpen}
         onClose={handleSidebarClose}
       />
+      
+      {/* Hidden component to preserve Tailwind classes */}
+      <TailwindClassPreserver />
     </>
   );
 }

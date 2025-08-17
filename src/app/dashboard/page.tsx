@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import { DashboardLayout } from '@/presentation/components/dashboard-layout';
 import { GradeTimelineGrid } from '@/presentation/components/dashboard/GradeTimelineGrid';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/presentation/components/ui/select';
@@ -14,6 +14,19 @@ export default function DashboardPage() {
   const [selectedSchoolYear, setSelectedSchoolYear] = useState<string>('2024-2025');
   const [selectedGrades, setSelectedGrades] = useState<number[]>([]);
   
+  // Overall summary state for header
+  const [overallSummary, setOverallSummary] = useState<{
+    totalStudents: number;
+    totalAbsences: number;
+    absenceRate: number;
+    gradeLevelsCount: number;
+  }>({
+    totalStudents: 0,
+    totalAbsences: 0,
+    absenceRate: 0,
+    gradeLevelsCount: 0
+  });
+  
   // Available school years
   const schoolYears = [
     { value: '2024-2025', label: 'SY 2024-2025', description: 'Aug 15, 2024 - Jun 12, 2025' }
@@ -24,7 +37,7 @@ export default function DashboardPage() {
     { id: 'all', name: 'All Schools' }
   ]);
   
-  // Fetch schools on mount
+  // Fetch schools and overall summary on mount
   useEffect(() => {
     const fetchSchools = async () => {
       try {
@@ -45,6 +58,30 @@ export default function DashboardPage() {
     
     fetchSchools();
   }, []);
+
+  // Fetch overall summary when school selection changes
+  useEffect(() => {
+    const fetchOverallSummary = async () => {
+      try {
+        const response = await fetch(`/api/overall-summary?schoolId=${selectedSchoolId}`);
+        if (response.ok) {
+          const summaryData = await response.json();
+          if (summaryData.success && summaryData.data) {
+            setOverallSummary({
+              totalStudents: summaryData.data.totalStudents,
+              totalAbsences: summaryData.data.totalAbsences,
+              absenceRate: summaryData.data.absenceRate,
+              gradeLevelsCount: summaryData.data.gradeLevelsCount
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch overall summary:', error);
+      }
+    };
+    
+    fetchOverallSummary();
+  }, [selectedSchoolId]);
 
   // Use the timeline data hook
   const {
@@ -100,7 +137,7 @@ export default function DashboardPage() {
     await refreshData();
   }, [refreshData]);
 
-  // Get summary statistics
+  // Get summary statistics from timeline data (for timeline grid)
   const summaryStats = getSummaryStats();
 
   const selectedSchoolName = schools.find(school => school.id === selectedSchoolId)?.name || 'All Schools';
@@ -138,23 +175,21 @@ export default function DashboardPage() {
               </h1>
               <div className="flex items-center gap-6 text-sm text-gray-600">
                 <div className="flex items-center gap-1">
-                  <span className="font-medium">{summaryStats.totalStudents.toLocaleString()}</span>
+                  <span className="font-medium">{overallSummary.totalStudents.toLocaleString()}</span>
                   <span>students</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <span className="font-medium">{summaryStats.totalAbsences.toLocaleString()}</span>
+                  <span className="font-medium">{overallSummary.totalAbsences.toLocaleString()}</span>
                   <span>total absences</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <span className="font-medium">{summaryStats.avgAbsenceRate.toFixed(1)}%</span>
+                  <span className="font-medium">{overallSummary.absenceRate.toFixed(1)}%</span>
                   <span>absence rate</span>
                 </div>
-                {dataRange && (
-                  <div className="flex items-center gap-1 text-gray-500">
-                    <Calendar className="h-4 w-4" />
-                    <span>{dataRange.start} to {dataRange.end}</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-1">
+                  <span className="font-medium">{overallSummary.gradeLevelsCount}</span>
+                  <span>grade level{overallSummary.gradeLevelsCount !== 1 ? 's' : ''}</span>
+                </div>
               </div>
             </div>
 
@@ -183,10 +218,7 @@ export default function DashboardPage() {
                 <SelectContent>
                   {schoolYears.map((year) => (
                     <SelectItem key={year.value} value={year.value}>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{year.label}</span>
-                        <span className="text-xs text-gray-500">{year.description}</span>
-                      </div>
+                      <span className="font-medium">{year.label}</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
