@@ -7,6 +7,17 @@ const config: Config = {
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
     './src/presentation/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  safelist: [
+    // iReady placement colors
+    'text-red-600',
+    'bg-red-50',
+    'text-green-600',
+    'bg-green-50',
+    'text-blue-600',
+    'bg-blue-50',
+    'text-gray-600',
+    'bg-gray-50',
+  ],
   theme: {
     extend: {
       fontFamily: {
